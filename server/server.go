@@ -51,14 +51,37 @@ func Start() {
 	}
 
 	glog.Infoln("confgr server starting")
-	//  run HTTPS listener in goroutine to allow HTTP server
-	go func(port, cert, key string) {
-		if err := http.ListenAndServeTLS(":"+port, cert, key, nil); err != nil {
-			glog.Fatalf("unable to serve https: %v\n", err)
-		}
-	}(tlsPort, certFile, keyFile)
+
+	if startHttps(certFile, keyFile) {
+		glog.Infoln("HTTPS started")
+	}
 
 	if err := http.ListenAndServe(":"+stdPort, nil); err != nil {
 		glog.Fatalf("unable to serve http: %v\n", err)
 	}
+}
+
+func startHttps(certFile, keyFile string) bool {
+	certInfo, certErr := os.Stat(certFile)
+	if certErr != nil && !os.IsNotExist(certErr) {
+		glog.Fatalf("unable to access cert file %s: %v\n", certFile, certErr)
+	}
+
+	keyInfo, keyErr := os.Stat(keyFile)
+	if keyErr != nil && !os.IsNotExist(keyErr) {
+		glog.Fatalf("unable to access key file %s: %v\n", keyFile, keyErr)
+	}
+
+	if certInfo != nil && keyInfo != nil {
+		//  run HTTPS listener in goroutine to allow HTTP server
+		go func(port, cert, key string) {
+			if err := http.ListenAndServeTLS(":"+port, cert, key, nil); err != nil {
+				glog.Fatalf("unable to serve https: %v\n", err)
+			}
+		}(tlsPort, certFile, keyFile)
+
+		return true
+	}
+
+	return false
 }
