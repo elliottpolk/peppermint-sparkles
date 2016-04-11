@@ -77,7 +77,7 @@ func main() {
 
 	if args[0] != serverCmd {
 		if os.Getenv("CONFGR_ADDR") == "" {
-			fmt.Println("CONFGR_ADDR must be set prior to usage (i.e. export CONFGR_ADDR=localhost:8080")
+			fmt.Println("CONFGR_ADDR must be set prior to usage (i.e. export CONFGR_ADDR=localhost:8080)")
 			os.Exit(1)
 		}
 
