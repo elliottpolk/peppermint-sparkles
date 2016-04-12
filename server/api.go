@@ -75,7 +75,7 @@ func set(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := c.Save(); err != nil {
-		glog.Errorf("unable to set config %s for app %s: %v\n", err, c.App, c.Value)
+		glog.Errorf("unable to set config %s for app %s: %v\n", c.App, c.Value, err)
 		http.Error(w, "unable to add key / value", http.StatusInternalServerError)
 		return
 	}
