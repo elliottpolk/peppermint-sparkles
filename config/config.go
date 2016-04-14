@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 package config
 
-import "github.com/takkun1946/confgr/datastore"
+import "github.com/elliottpolk/confgr/datastore"
 
 type Config struct {
 	App   string `json:"app"`

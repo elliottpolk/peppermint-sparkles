@@ -12,8 +12,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/takkun1946/confgr/config"
-	"github.com/takkun1946/confgr/server"
+	"github.com/elliottpolk/confgr/config"
+	"github.com/elliottpolk/confgr/server"
 
 	"github.com/golang/glog"
 )

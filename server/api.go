@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/takkun1946/confgr/config"
+	"github.com/elliottpolk/confgr/config"
 
 	"github.com/golang/glog"
 )

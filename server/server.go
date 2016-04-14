@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/takkun1946/confgr/datastore"
+	"github.com/elliottpolk/confgr/datastore"
 
 	"github.com/golang/glog"
 )
