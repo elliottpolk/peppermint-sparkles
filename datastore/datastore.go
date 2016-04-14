@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	DSFile string = "confgr.db"
+	DSFile string = "/var/lib/confgr/confgr.db"
 	Bucket string = "configs"
 )
 
