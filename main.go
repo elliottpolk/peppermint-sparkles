@@ -8,14 +8,13 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/elliottpolk/confgr/config"
 	"github.com/elliottpolk/confgr/server"
-
-	"github.com/golang/glog"
 )
 
 const (
@@ -30,55 +29,25 @@ const (
 )
 
 func main() {
-	flag.Usage = func() {
-		fmt.Println("usage: confgr command [arguments]\n")
-		fmt.Println("commands:")
-		fmt.Printf("\t%s\tstarts the confgr server\n", serverCmd)
-		fmt.Printf("\t%s\tlists out the available app configs\n", listCmd)
-		fmt.Printf("\t%s\tretrieves the config for the provided app name\n", getCmd)
-		fmt.Printf("\t%s\tsets the config for the specified app\n", setCmd)
-		fmt.Printf("\t%s\tremoves the config and app for the provided app\n", removeCmd)
+	getfs := flag.NewFlagSet(getCmd, flag.ExitOnError)
+	gaf := getfs.String(appFlag, "", "app name to retrieve respective config")
 
-		switch flag.Arg(0) {
-		case getCmd:
-			fmt.Printf("arguments for %s:\n", getCmd)
-			fmt.Printf("\t%s\tapp name to retrieve respective config\n", appFlag)
+	setfs := flag.NewFlagSet(setCmd, flag.ExitOnError)
+	saf := setfs.String(appFlag, "", "app name to be set")
+	scf := setfs.String(configFlag, "", "config to be written")
 
-		case setCmd:
-			fmt.Printf("arguments for %s:\n", setCmd)
-			fmt.Printf("\t%s\tapp name to be set\n", appFlag)
-			fmt.Printf("\t%s\tconfig to be written\n", configFlag)
+	removefs := flag.NewFlagSet(removeCmd, flag.ExitOnError)
+	raf := removefs.String(appFlag, "", "app name to be removed")
 
-		case removeCmd:
-			fmt.Printf("arguments for %s:\n", removeCmd)
-			fmt.Printf("\t%s\tapp name to be removed\n", appFlag)
-
-		}
-
-		os.Exit(0)
-	}
-
-	flag.Parse()
-	defer glog.Flush()
-
-	//  force log output to stdout / stderr
-	flag.Lookup("alsologtostderr").Value.Set("true")
-
-	args := flag.Args()
-	if len(args) < 1 {
+	args := os.Args
+	if len(args) == 1 {
 		flag.Usage()
+		os.Exit(2)
 	}
 
-	for _, a := range args[1:] {
-		if a == "-h" || a == "-help" || a == "--help" {
-			flag.Usage()
-		}
-	}
-
-	if args[0] != serverCmd {
+	if args[1] != serverCmd {
 		if os.Getenv("CONFGR_ADDR") == "" {
-			fmt.Println("CONFGR_ADDR must be set prior to usage (i.e. export CONFGR_ADDR=localhost:8080)")
-			os.Exit(1)
+			log.Fatalln("CONFGR_ADDR must be set prior to usage (i.e. export CONFGR_ADDR=localhost:8080)")
 		}
 
 		serverUrl := os.Getenv("CONFGR_ADDR")
@@ -90,102 +59,91 @@ func main() {
 			serverUrl = strings.TrimSuffix(serverUrl, "/")
 		}
 
-		switch args[0] {
+		switch args[1] {
 		case listCmd:
 			res, err := http.Get(fmt.Sprintf("%s/list", serverUrl))
 			if err != nil {
-				glog.Errorf("unable to list apps: %v\n", err)
+				log.Printf("unable to list apps: %v\n", err)
 				return
 			}
 			defer res.Body.Close()
 
 			body, err := ioutil.ReadAll(res.Body)
 			if err != nil {
-				glog.Errorf("unable to list apps: %v\n", err)
+				log.Printf("unable to list apps: %v\n", err)
 				return
 			}
-			fmt.Println(string(body))
+			log.Println(string(body))
 
 		case getCmd:
-			if len(flag.Args()) < 2 {
-				flag.Usage()
+			if err := getfs.Parse(args[2:]); err != nil {
+				log.Fatalln(err)
 			}
 
-			appName := flag.Arg(1)
-
-			res, err := http.Get(fmt.Sprintf("%s/get?app=%s", serverUrl, appName))
+			res, err := http.Get(fmt.Sprintf("%s/get?app=%s", serverUrl, *gaf))
 			if err != nil {
-				glog.Errorf("unable to get config for app %s: %v\n", appName, err)
-				return
+				log.Fatalf("unable to get config for app %s: %v\n", *gaf, err)
 			}
 			defer res.Body.Close()
 
 			body, err := ioutil.ReadAll(res.Body)
 			if err != nil {
-				glog.Errorf("unable to retrieve error message: %v\n", err)
-				return
+				log.Fatalf("unable to retrieve error message: %v\n", err)
 			}
-			fmt.Println(string(body))
+			log.Println(string(body))
 
 		case setCmd:
-			if len(flag.Args()) < 3 {
-				flag.Usage()
+			if err := setfs.Parse(args[2:]); err != nil {
+				log.Fatalln(err)
 			}
 
 			c := &config.Config{
-				App:   flag.Arg(1),
-				Value: flag.Arg(2),
+				App:   *saf,
+				Value: *scf,
 			}
 
 			out, err := json.Marshal(c)
 			if err != nil {
-				glog.Errorf("unable to prepare request: %v\n", err)
-				return
+				log.Fatalf("unable to prepare request: %v\n", err)
 			}
 
 			req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/set", serverUrl), strings.NewReader(string(out)))
 			if err != nil {
-				glog.Errorf("unable to prepare request: %v\n", err)
-				return
+				log.Fatalf("unable to prepare request: %v\n", err)
 			}
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 			res, err := http.DefaultClient.Do(req)
 			if err != nil {
-				glog.Errorf("unable to set config for app %s: %v\n", c.App, err)
-				return
+				log.Fatalf("unable to set config for app %s: %v\n", c.App, err)
 			}
 			defer res.Body.Close()
 
 			if res.StatusCode != http.StatusOK {
 				body, err := ioutil.ReadAll(res.Body)
 				if err != nil {
-					glog.Errorf("unable to retrieve error message: %v\n", err)
-					return
+					log.Fatalf("unable to retrieve error message: %v\n", err)
 				}
-				fmt.Println(string(body))
+				log.Println(string(body))
 			}
 
 		case removeCmd:
-			if len(flag.Args()) < 2 {
-				flag.Usage()
+			if err := removefs.Parse(args[2:]); err != nil {
+				log.Fatalln(err)
 			}
 
-			appName := flag.Arg(1)
-			res, err := http.Get(fmt.Sprintf("%s/remove?app=%s", serverUrl, appName))
+			res, err := http.Get(fmt.Sprintf("%s/remove?app=%s", serverUrl, *raf))
 			if err != nil {
-				glog.Errorf("unable to remove config for app %s: %v\n", appName, err)
-				return
+				log.Fatalf("unable to remove config for app %s: %v\n", *raf, err)
 			}
 			defer res.Body.Close()
 
 			if res.StatusCode != http.StatusOK {
 				body, err := ioutil.ReadAll(res.Body)
 				if err != nil {
-					glog.Errorf("unable to retrieve error message: %v\n", err)
-					return
+					log.Fatalf("unable to retrieve error message: %v\n", err)
 				}
-				fmt.Println(string(body))
+				log.Println(string(body))
 			}
 
 		default:
@@ -194,6 +152,8 @@ func main() {
 
 		return
 	}
+
+	log.Println("...")
 
 	server.Start()
 }
