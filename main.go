@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -14,7 +15,9 @@ import (
 	"strings"
 
 	"github.com/elliottpolk/confgr/config"
+	"github.com/elliottpolk/confgr/pgp"
 	"github.com/elliottpolk/confgr/server"
+	"github.com/elliottpolk/confgr/uuid"
 )
 
 const (
@@ -24,17 +27,22 @@ const (
 	setCmd    string = "set"
 	removeCmd string = "remove"
 
-	appFlag    string = "app"
-	configFlag string = "config"
+	appFlag     string = "app"
+	configFlag  string = "config"
+	encryptFlag string = "encrypt"
 )
 
 func main() {
+	flag.Lookup("alsologtostderr").Value.Set("true")
+	flag.Usage = usage
+
 	getfs := flag.NewFlagSet(getCmd, flag.ExitOnError)
 	gaf := getfs.String(appFlag, "", "app name to retrieve respective config")
 
 	setfs := flag.NewFlagSet(setCmd, flag.ExitOnError)
 	saf := setfs.String(appFlag, "", "app name to be set")
 	scf := setfs.String(configFlag, "", "config to be written")
+	sef := setfs.Bool(encryptFlag, false, "encrypt the config")
 
 	removefs := flag.NewFlagSet(removeCmd, flag.ExitOnError)
 	raf := removefs.String(appFlag, "", "app name to be removed")
@@ -42,7 +50,12 @@ func main() {
 	args := os.Args
 	if len(args) == 1 {
 		flag.Usage()
-		os.Exit(2)
+	}
+
+	for _, a := range args[1:] {
+		if a == "-h" || a == "-help" || a == "--help" {
+			flag.Usage()
+		}
 	}
 
 	if args[1] != serverCmd {
@@ -102,6 +115,20 @@ func main() {
 				Value: *scf,
 			}
 
+			var token string
+			if *sef {
+				if token = uuid.GetV4(); len(token) < 1 {
+					log.Fatalf("encryption token produced an empty string\n")
+				}
+
+				val, err := pgp.Encrypt([]byte(token), []byte(*scf))
+				if err != nil {
+					log.Fatalf("unable to encrypt config: %v\n", err)
+				}
+
+				c.Value = string(val)
+			}
+
 			out, err := json.Marshal(c)
 			if err != nil {
 				log.Fatalf("unable to prepare request: %v\n", err)
@@ -119,13 +146,16 @@ func main() {
 			}
 			defer res.Body.Close()
 
-			if res.StatusCode != http.StatusOK {
-				body, err := ioutil.ReadAll(res.Body)
-				if err != nil {
-					log.Fatalf("unable to retrieve error message: %v\n", err)
-				}
-				log.Println(string(body))
+			body, err := ioutil.ReadAll(res.Body)
+			if err != nil {
+				log.Fatalf("unable to retrieve response: %v\n", err)
 			}
+
+			if *sef {
+				log.Printf("token: 			 %s", token)
+				log.Printf("token as base64: %s", base64.StdEncoding.EncodeToString([]byte(token)))
+			}
+			log.Printf("stored config:\n%s\n", string(body))
 
 		case removeCmd:
 			if err := removefs.Parse(args[2:]); err != nil {
@@ -153,7 +183,37 @@ func main() {
 		return
 	}
 
-	log.Println("...")
-
 	server.Start()
+}
+
+func usage() {
+	fmt.Printf("usage: %s <command> [args]\n\n", os.Args[0])
+
+	fmt.Println("Available commands:")
+	fmt.Printf("\t%s\t\tstarts confgr server\n", serverCmd)
+	fmt.Printf("\t%s\t\tretrieves the available app configs\n", listCmd)
+	fmt.Printf("\t%s\t\tretrieves the available config\n", getCmd)
+	fmt.Printf("\t%s\t\tadds a new config\n", setCmd)
+	fmt.Printf("\t%s\t\tdeletes the specified config\n", removeCmd)
+
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case getCmd:
+			fmt.Printf("Arguments for %s:\n", getCmd)
+			fmt.Printf("\t%s\tapp name to retrieve respective config\n", appFlag)
+
+		case setCmd:
+			fmt.Printf("Arguments for %s:\n", setCmd)
+			fmt.Printf("\t%s\tapp name to be set\n", appFlag)
+			fmt.Printf("\t%s\tconfig to be written\n", configFlag)
+			fmt.Printf("\t%s\tencrypt the config\n", encryptFlag)
+
+		case removeCmd:
+			fmt.Printf("Arguments for %s:\n", removeCmd)
+			fmt.Printf("\t%s\tapp name to be removed\n", appFlag)
+		}
+	}
+
+	fmt.Println()
+	os.Exit(0)
 }
