@@ -79,6 +79,16 @@ func set(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unable to add key / value", http.StatusInternalServerError)
 		return
 	}
+
+	out, err := json.MarshalIndent(c, "", "   ")
+	if err != nil {
+		glog.Errorln("unable to marshal conf: %v\n", err)
+		http.Error(w, "unable to format data", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintln(w, string(out))
 }
 
 //  remove is a http.HandleFunc that removes the relevant config for the provided
