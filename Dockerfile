@@ -7,6 +7,6 @@ RUN rm -rf /var/cache/apk/*
 COPY confgr /usr/bin/confgr
 RUN mkdir -p /var/lib/confgr
 
-WORKDIR /usr/bin
+WORKDIR /var/lib/confgr
 
 CMD ["/usr/bin/confgr", "server"]
