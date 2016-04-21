@@ -30,6 +30,8 @@ const (
 	appFlag     string = "app"
 	configFlag  string = "config"
 	encryptFlag string = "encrypt"
+	decryptFlag string = "decrypt"
+	tokenFlag   string = "token"
 )
 
 func main() {
@@ -38,11 +40,13 @@ func main() {
 
 	getfs := flag.NewFlagSet(getCmd, flag.ExitOnError)
 	gaf := getfs.String(appFlag, "", "app name to retrieve respective config")
+	gdf := getfs.Bool(decryptFlag, false, "decrypt config")
+	gtf := getfs.String(tokenFlag, "", "token to decrypt config with")
 
 	setfs := flag.NewFlagSet(setCmd, flag.ExitOnError)
 	saf := setfs.String(appFlag, "", "app name to be set")
 	scf := setfs.String(configFlag, "", "config to be written")
-	sef := setfs.Bool(encryptFlag, false, "encrypt the config")
+	sef := setfs.Bool(encryptFlag, false, "encrypt config")
 
 	removefs := flag.NewFlagSet(removeCmd, flag.ExitOnError)
 	raf := removefs.String(appFlag, "", "app name to be removed")
@@ -93,6 +97,11 @@ func main() {
 				log.Fatalln(err)
 			}
 
+			if *gdf && len(*gtf) < 1 {
+				log.Println("decryption must be provided if decryption is specified")
+				flag.Usage()
+			}
+
 			res, err := http.Get(fmt.Sprintf("%s/get?app=%s", serverUrl, *gaf))
 			if err != nil {
 				log.Fatalf("unable to get config for app %s: %v\n", *gaf, err)
@@ -103,7 +112,31 @@ func main() {
 			if err != nil {
 				log.Fatalf("unable to retrieve error message: %v\n", err)
 			}
-			log.Println(string(body))
+			log.Printf("\n%s\n", string(body))
+
+			if *gdf {
+				t, err := base64.StdEncoding.DecodeString(*gtf)
+				if err != nil {
+					log.Fatalf("unable to convert base64 token to string: %v\n", err)
+				}
+
+				cfg := &config.Config{}
+				if err := json.Unmarshal(body, &cfg); err != nil {
+					log.Fatalf("unable to convert response body to Config: %v\n", err)
+				}
+
+				ctxt, err := base64.StdEncoding.DecodeString(cfg.Value)
+				if err != nil {
+					log.Fatalf("unable to base64 decode config value: %v\n", err)
+				}
+
+				ptxt, err := pgp.Decrypt(t, ctxt)
+				if err != nil {
+					log.Fatalf("unable to decrypt config: %v\n", err)
+				}
+
+				log.Printf("\n%s\n", string(ptxt))
+			}
 
 		case setCmd:
 			if err := setfs.Parse(args[2:]); err != nil {
@@ -201,12 +234,14 @@ func usage() {
 		case getCmd:
 			fmt.Printf("Arguments for %s:\n", getCmd)
 			fmt.Printf("\t%s\tapp name to retrieve respective config\n", appFlag)
+			fmt.Printf("\t%s\tdecrypt the config\n", decryptFlag)
+			fmt.Printf("\t%s\ttoken to decrypt config with\n", tokenFlag)
 
 		case setCmd:
 			fmt.Printf("Arguments for %s:\n", setCmd)
 			fmt.Printf("\t%s\tapp name to be set\n", appFlag)
 			fmt.Printf("\t%s\tconfig to be written\n", configFlag)
-			fmt.Printf("\t%s\tencrypt the config\n", encryptFlag)
+			fmt.Printf("\t%s\tencrypt config\n", encryptFlag)
 
 		case removeCmd:
 			fmt.Printf("Arguments for %s:\n", removeCmd)
