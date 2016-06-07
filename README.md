@@ -5,12 +5,12 @@ intended to be used within a private network.
 ## usage
 ```bash
 $ confgr
-usage: confgr command [arguments]
+usage: confgr <command> [args]
 
-commands:
-    server  starts the confgr server
-    list    lists out the available app configs
-    get retrieves the config for the provided app name
-    set sets the config for the specified app
-    remove  removes the config and app for the provided app
+Available commands:
+	server		starts confgr server
+	list		retrieves the available app configs
+	get		retrieves the available config
+	set		adds a new config
+	remove		deletes the specified config
 ```
