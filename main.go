@@ -47,6 +47,7 @@ func main() {
 	saf := setfs.String(appFlag, "", "app name to be set")
 	scf := setfs.String(configFlag, "", "config to be written")
 	sef := setfs.Bool(encryptFlag, false, "encrypt config")
+	set := setfs.String(tokenFlag, "", "base64 encoded token to encrypt config with")
 
 	removefs := flag.NewFlagSet(removeCmd, flag.ExitOnError)
 	raf := removefs.String(appFlag, "", "app name to be removed")
@@ -150,8 +151,16 @@ func main() {
 
 			var token string
 			if *sef {
-				if token = uuid.GetV4(); len(token) < 1 {
-					log.Fatalf("encryption token produced an empty string\n")
+				if len(*set) < 1 {
+					if token = uuid.GetV4(); len(token) < 1 {
+						log.Fatalf("encryption token produced an empty string\n")
+					}
+				} else {
+					t, err := base64.StdEncoding.DecodeString(*set)
+					if err != nil {
+						log.Fatalf("unable to unencode base64 token string: %v\n", err)
+					}
+					token = string(t)
 				}
 
 				val, err := pgp.Encrypt([]byte(token), []byte(*scf))
