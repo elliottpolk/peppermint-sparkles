@@ -16,6 +16,8 @@ type Config struct {
 	Value       string `json:"config"`
 }
 
+const DefaultEnv = "default"
+
 //  ListApps retrieves a map of app names and available environments from the
 //	datastore. If no keys exist, an empty map is returned
 func ListApps() map[string][]string {
@@ -36,6 +38,10 @@ func ListApps() map[string][]string {
 
 //  Save adds the config value to the datastore using the app name as the key
 func (c *Config) Save() error {
+	if len(c.Environment) < 1 {
+		c.Environment = DefaultEnv
+	}
+
 	return datastore.Set(fmt.Sprintf("%s_%s", c.App, c.Environment), c.Value)
 }
 
@@ -43,7 +49,7 @@ func (c *Config) Save() error {
 //  empty string is set for the Config.Value
 func Get(app, env string) *Config {
 	if len(env) < 1 {
-		env = "default"
+		env = DefaultEnv
 	}
 
 	return &Config{app, env, datastore.Get(fmt.Sprintf("%s_%s", app, env))}
@@ -53,7 +59,7 @@ func Get(app, env string) *Config {
 //  config exists, no error is returned.
 func Remove(app, env string) error {
 	if len(env) < 1 {
-		env = "default"
+		env = DefaultEnv
 	}
 
 	return datastore.Remove(fmt.Sprintf("%s_%s", app, env))
