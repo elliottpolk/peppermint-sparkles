@@ -86,13 +86,13 @@ func decryptCfg(data []byte) error {
 		return err
 	}
 
-	plainTxt, err := pgp.Decrypt(t, cipherTxt)
+	plaintxt, err := pgp.Decrypt(t, cipherTxt)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("decrypted config:")
-	fmt.Printf("%s\n", string(plainTxt))
+	fmt.Printf("%s\n", string(plaintxt))
 
 	return nil
 }

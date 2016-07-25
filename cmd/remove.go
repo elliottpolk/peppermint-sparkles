@@ -24,6 +24,11 @@ func init() {
 	rmEnv = rmFlagSet.String(EnvFlag, "", "environment config is for (e.g. PROD, DEV, TEST...)")
 }
 
+//  RemoveCfg takes in a list of cli arguments and attempts to call the confgr
+//  remote API to remove the provided app / environment config. If no environment
+//  flag is set in the command, 'default' is used. If the remote API returns an
+//  error or a status code other than 200, it is noted and the response body is
+//  returned as the error.
 func RemoveCfg(args []string) error {
 	if err := rmFlagSet.Parse(args[2:]); err != nil {
 		return err
