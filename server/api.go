@@ -35,8 +35,9 @@ func list(w http.ResponseWriter, r *http.Request) {
 }
 
 //  get is a http.HandleFunc that retrieves the relevant config for the provided
-//  "app" query parameter. The results are run through json.MarshalIndent prior
-//  to writing back to the HTTP reponse.
+//  'app' and 'env' query parameters. An empty 'env' parameter is valid as the
+//	config.Get will use 'default'. The results are run through json.MarshalIndent
+//	prior to writing back to the HTTP reponse.
 func get(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -63,8 +64,8 @@ func get(w http.ResponseWriter, r *http.Request) {
 
 //  set is a http.HandleFunc that expects a valid config.Config in the request
 //  body. It attempts to save the config to the datastore, overwriting the existing
-//  app config if one exists. If the save writes properly, a http.StatusOK (200)
-//  is returned automatically upon return.
+//  app and environment config if one exists. If the save writes properly, a
+//	http.StatusOK (200) with the output of what was stored is returned.
 func set(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -100,8 +101,10 @@ func set(w http.ResponseWriter, r *http.Request) {
 }
 
 //  remove is a http.HandleFunc that removes the relevant config for the provided
-//  "app" query parameter. If no config exists, no error is returned. If the remove
-//  occurs properly, a http.StatusOK (200) is returned automatically upon return.
+//  'app' and 'env' query parameters. An empty 'env' parameter is valid as the
+//	config.Remove will use 'default'. If no config exists, no error is returned.
+//	If the remove occurs properly, a http.StatusOK (200) is returned automatically
+//	upon return.
 func remove(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
