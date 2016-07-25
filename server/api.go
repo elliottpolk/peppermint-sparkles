@@ -10,8 +10,6 @@ import (
 	"net/http"
 
 	"github.com/elliottpolk/confgr/config"
-
-	"github.com/golang/glog"
 )
 
 func init() {
@@ -25,8 +23,15 @@ func init() {
 func list(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
+	out, err := json.MarshalIndent(config.ListApps(), "", "   ")
+	if err != nil {
+		fmt.Printf("unable to convert map to string: %v\n", err)
+		http.Error(w, "unable to formate data", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintln(w, config.ListApps())
+	fmt.Fprintln(w, string(out))
 }
 
 //  get is a http.HandleFunc that retrieves the relevant config for the provided
@@ -37,14 +42,17 @@ func get(w http.ResponseWriter, r *http.Request) {
 
 	app := r.URL.Query().Get("app")
 	if len(app) < 1 {
-		glog.Errorln("empty app name provided")
+		fmt.Println("empty app name provided")
 		http.Error(w, "invalid app name provided", http.StatusBadRequest)
 		return
 	}
 
-	out, err := json.MarshalIndent(config.Get(app), "", "   ")
+	//	an empty env variable will default to "default"
+	env := r.URL.Query().Get("env")
+
+	out, err := json.MarshalIndent(config.Get(app, env), "", "   ")
 	if err != nil {
-		glog.Errorln("unable to marshal conf: %v\n", err)
+		fmt.Printf("unable to marshal conf: %v\n", err)
 		http.Error(w, "unable to format data", http.StatusInternalServerError)
 		return
 	}
@@ -62,27 +70,27 @@ func set(w http.ResponseWriter, r *http.Request) {
 
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		glog.Errorf("unable to read request body: %v\n", err)
+		fmt.Printf("unable to read request body: %v\n", err)
 		http.Error(w, "unable to read request", http.StatusInternalServerError)
 		return
 	}
 
 	c := &config.Config{}
 	if err := json.Unmarshal(data, &c); err != nil {
-		glog.Errorf("unable to unmarshal content: %v\n", err)
+		fmt.Printf("unable to unmarshal content: %v\n", err)
 		http.Error(w, "invalid content submitted", http.StatusBadRequest)
 		return
 	}
 
 	if err := c.Save(); err != nil {
-		glog.Errorf("unable to set config %s for app %s: %v\n", c.App, c.Value, err)
+		fmt.Printf("unable to set config %s for app %s: %v\n", c.App, c.Value, err)
 		http.Error(w, "unable to add key / value", http.StatusInternalServerError)
 		return
 	}
 
 	out, err := json.MarshalIndent(c, "", "   ")
 	if err != nil {
-		glog.Errorln("unable to marshal conf: %v\n", err)
+		fmt.Printf("unable to marshal conf: %v\n", err)
 		http.Error(w, "unable to format data", http.StatusInternalServerError)
 		return
 	}
@@ -99,13 +107,16 @@ func remove(w http.ResponseWriter, r *http.Request) {
 
 	app := r.URL.Query().Get("app")
 	if len(app) < 1 {
-		glog.Errorln("empty app name provided")
+		fmt.Println("empty app name provided")
 		http.Error(w, "invalid app name provided", http.StatusBadRequest)
 		return
 	}
 
-	if err := config.Remove(app); err != nil {
-		glog.Errorf("unable to remove config for app %s: %v\n", app, err)
+	//	an empty env variable will default to "default"
+	env := r.URL.Query().Get("env")
+
+	if err := config.Remove(app, env); err != nil {
+		fmt.Printf("unable to remove config for app %s: %v\n", app, err)
 		http.Error(w, "unable to remove app config", http.StatusInternalServerError)
 		return
 	}

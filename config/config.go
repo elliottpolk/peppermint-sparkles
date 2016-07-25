@@ -3,31 +3,58 @@
 // license that can be found in the LICENSE file.
 package config
 
-import "github.com/elliottpolk/confgr/datastore"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/elliottpolk/confgr/datastore"
+)
 
 type Config struct {
-	App   string `json:"app"`
-	Value string `json:"config"`
+	App         string `json:"app"`
+	Environment string `json:"environment"`
+	Value       string `json:"config"`
 }
 
-//  ListApps retrieves the list of keys from the datastore
-func ListApps() []string {
-	return datastore.GetKeys()
+//  ListApps retrieves a map of app names and available environments from the
+//	datastore. If no keys exist, an empty map is returned
+func ListApps() map[string][]string {
+	listing := make(map[string][]string)
+	for _, k := range datastore.GetKeys() {
+		name := strings.Split(k, "_")[0]
+		env := strings.Split(k, "_")[1]
+
+		item, ok := listing[name]
+		if !ok {
+			item = make([]string, 0)
+		}
+		listing[name] = append(item, env)
+	}
+
+	return listing
 }
 
 //  Save adds the config value to the datastore using the app name as the key
 func (c *Config) Save() error {
-	return datastore.Set(c.App, c.Value)
+	return datastore.Set(fmt.Sprintf("%s_%s", c.App, c.Environment), c.Value)
 }
 
 //  Get retrieves the config for the provided app name. If no config exists, an
-//  empty string is set for the Config.Value.
-func Get(app string) *Config {
-	return &Config{app, datastore.Get(app)}
+//  empty string is set for the Config.Value
+func Get(app, env string) *Config {
+	if len(env) < 1 {
+		env = "default"
+	}
+
+	return &Config{app, env, datastore.Get(fmt.Sprintf("%s_%s", app, env))}
 }
 
 //  Remove attempts to delete relevant config for the provided app name. If no
 //  config exists, no error is returned.
-func Remove(app string) error {
-	return datastore.Remove(app)
+func Remove(app, env string) error {
+	if len(env) < 1 {
+		env = "default"
+	}
+
+	return datastore.Remove(fmt.Sprintf("%s_%s", app, env))
 }

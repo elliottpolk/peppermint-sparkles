@@ -7,19 +7,14 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-
-	"github.com/golang/glog"
 )
 
 //  GetV4 returns a version 4 UUID based on RFC 4122 section 4.4 spec
 func GetV4() string {
-	defer glog.Flush()
-
 	buf := make([]byte, 16)
 	n, err := io.ReadFull(rand.Reader, buf)
 	if n != len(buf) || err != nil {
-		glog.Errorf("unable to retrieve random data: %v\n", err)
-
+		fmt.Printf("unable to retrieve random data: %v\n", err)
 		return ""
 	}
 

@@ -4,12 +4,11 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/elliottpolk/confgr/datastore"
-
-	"github.com/golang/glog"
 )
 
 const (
@@ -26,7 +25,7 @@ func Start() {
 	if err := datastore.Start(); err != nil {
 		panic(err)
 	}
-	glog.Infoln("confgr datastore started")
+	fmt.Println("confgr datastore started")
 
 	//  configure listener ports
 	stdPort = DefaultStdPort
@@ -50,33 +49,33 @@ func Start() {
 		keyFile = os.Getenv("TLS_KEY")
 	}
 
-	glog.Infoln("confgr server starting")
+	fmt.Println("confgr server starting")
 
 	if startHttps(certFile, keyFile) {
-		glog.Infoln("HTTPS started")
+		fmt.Println("HTTPS started")
 	}
 
 	if err := http.ListenAndServe(":"+stdPort, nil); err != nil {
-		glog.Fatalf("unable to serve http: %v\n", err)
+		fmt.Printf("unable to serve http: %v\n", err)
 	}
 }
 
 func startHttps(certFile, keyFile string) bool {
 	certInfo, certErr := os.Stat(certFile)
 	if certErr != nil && !os.IsNotExist(certErr) {
-		glog.Fatalf("unable to access cert file %s: %v\n", certFile, certErr)
+		fmt.Printf("unable to access cert file %s: %v\n", certFile, certErr)
 	}
 
 	keyInfo, keyErr := os.Stat(keyFile)
 	if keyErr != nil && !os.IsNotExist(keyErr) {
-		glog.Fatalf("unable to access key file %s: %v\n", keyFile, keyErr)
+		fmt.Printf("unable to access key file %s: %v\n", keyFile, keyErr)
 	}
 
 	if certInfo != nil && keyInfo != nil {
 		//  run HTTPS listener in goroutine to allow HTTP server
 		go func(port, cert, key string) {
 			if err := http.ListenAndServeTLS(":"+port, cert, key, nil); err != nil {
-				glog.Fatalf("unable to serve https: %v\n", err)
+				fmt.Printf("unable to serve https: %v\n", err)
 			}
 		}(tlsPort, certFile, keyFile)
 

@@ -4,12 +4,12 @@
 package datastore
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/boltdb/bolt"
-	"github.com/golang/glog"
 )
 
 const (
@@ -36,14 +36,14 @@ func Start() error {
 	go func(c chan os.Signal) {
 		// Wait for a SIGINT or SIGKILL
 		sig := <-c
-		glog.Infof("caught signal %s: shutting down.", sig)
+		fmt.Printf("caught signal %s: shutting down.", sig)
 
 		if err := ds.Close(); err != nil {
-			glog.Errorf("error while closing datastore: %v\n", err)
+			fmt.Printf("error while closing datastore: %v\n", err)
 			os.Exit(1)
 		}
 
-		glog.Infof("datastore closed")
+		fmt.Println("datastore closed")
 		os.Exit(0)
 	}(sigc)
 

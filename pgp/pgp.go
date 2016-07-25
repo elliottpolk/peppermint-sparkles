@@ -46,7 +46,16 @@ func Decrypt(token, ciphertxt []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	readTick := 0
 	details, err := openpgp.ReadMessage(block.Body, nil, func(k []openpgp.Key, s bool) ([]byte, error) {
+		// 	temporary hack since this will be called several times when a given
+		//	token is not valid.
+		//	TODO :: review openpgp source for more info
+		if readTick > 100 {
+			return token, fmt.Errorf("invalid token provided")
+		}
+
+		readTick++
 		return token, nil
 	}, nil)
 
