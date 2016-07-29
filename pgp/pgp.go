@@ -41,7 +41,12 @@ func Encrypt(key, text []byte) ([]byte, error) {
 //  Decrypt expects an OpenPGP encoded ciphertext, returning the decrypted results
 //  of the cipher text using the provided token.
 func Decrypt(token, ciphertxt []byte) ([]byte, error) {
-	block, err := armor.Decode(bytes.NewBuffer(ciphertxt))
+	decoded, err := base64.StdEncoding.DecodeString(string(ciphertxt))
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := armor.Decode(bytes.NewBuffer(decoded))
 	if err != nil {
 		return nil, err
 	}
