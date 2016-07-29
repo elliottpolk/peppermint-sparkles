@@ -76,18 +76,14 @@ func decryptCfg(data []byte) error {
 		return err
 	}
 
-	cipherTxt, err := base64.StdEncoding.DecodeString(cfg.Value)
-	if err != nil {
-		return err
-	}
-
 	t, err := base64.StdEncoding.DecodeString(*getToken)
 	if err != nil {
 		return err
 	}
 
-	plaintxt, err := pgp.Decrypt(t, cipherTxt)
+	plaintxt, err := pgp.Decrypt(t, []byte(cfg.Value))
 	if err != nil {
+		fmt.Println("or here")
 		return err
 	}
 
