@@ -7,4 +7,4 @@ COPY confgr /usr/bin/confgr
 RUN mkdir -p /var/lib/confgr
 
 WORKDIR /var/lib/confgr
-ENTRYPOINT ["/usr/bin/confgr", "server"]
+ENTRYPOINT ["/usr/bin/confgr"]
