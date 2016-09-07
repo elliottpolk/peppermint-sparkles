@@ -29,11 +29,11 @@ func Start() {
 
 	//  configure listener ports
 	stdPort = DefaultStdPort
-	tlsPort = DefaultTlsPort
 	if os.Getenv("HTTP_PORT") != "" {
 		stdPort = os.Getenv("HTTP_PORT")
 	}
 
+	tlsPort = DefaultTlsPort
 	if os.Getenv("HTTPS_PORT") != "" {
 		tlsPort = os.Getenv("HTTPS_PORT")
 	}
