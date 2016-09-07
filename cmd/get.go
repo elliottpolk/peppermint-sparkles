@@ -83,7 +83,6 @@ func decryptCfg(data []byte) error {
 
 	plaintxt, err := pgp.Decrypt(t, []byte(cfg.Value))
 	if err != nil {
-		fmt.Println("or here")
 		return err
 	}
 
