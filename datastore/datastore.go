@@ -13,7 +13,9 @@ import (
 )
 
 const (
-	DSFile string = "/var/lib/confgr/confgr.db"
+	DefaultDSFile string = "/var/lib/confgr/confgr.db"
+	EnvDSFile     string = "DS_FILE"
+
 	Bucket string = "configs"
 )
 
@@ -25,7 +27,12 @@ var ds *bolt.DB
 func Start() error {
 	var err error
 
-	ds, err = bolt.Open(DSFile, 0600, nil)
+	dsfile := DefaultDSFile
+	if env := os.Getenv(EnvDSFile); env != "" {
+		dsfile = env
+	}
+
+	ds, err = bolt.Open(dsfile, 0600, nil)
 	if err != nil {
 		return err
 	}
