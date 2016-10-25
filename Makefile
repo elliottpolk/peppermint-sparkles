@@ -19,7 +19,7 @@ build: clean build-dirs
 	@mv $(BIN) build/bin
 
 container: build
-	@docker build -t $(IMAGE)
+	@docker build -t $(IMAGE) .
 	@echo "\ncontainer: $(IMAGE)"
 
 test:
