@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/elliottpolk/confgr/datastore"
@@ -34,6 +35,20 @@ func Serve(context *cli.Context) {
 	if len(dsf) < 1 {
 		log.NewError("a valid datastore value must be provided")
 		return
+	}
+
+	//	ensure the expected directory exists
+	dir := filepath.Dir(dsf)
+	if _, err := os.Stat(dir); err != nil {
+		if !os.IsNotExist(err) {
+			log.Error(err, "unable to access datastore directory")
+			return
+		}
+
+		if err := os.MkdirAll(dir, 0644); err != nil {
+			log.Error(err, "unable to create datastore directory")
+			return
+		}
 	}
 
 	ds, err := datastore.Open(dsf)
