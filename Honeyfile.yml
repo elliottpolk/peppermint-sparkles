@@ -1,0 +1,32 @@
+version: "1"
+
+vars:
+  BIN: confgr
+  PKG: github.com/elliottpolk/confgr
+  BUILD_IMAGE: golang:latest
+  VERSION: 1.1.0
+
+targets:
+  clean:
+    actions:
+      - rm -rf build/
+
+  build-dirs:
+    actions:
+      - mkdir -p build/bin build/conf
+
+  test:
+    actions:
+      - docker run --rm -it -v $GOPATH:/go -w /go/src/{{.PKG}} {{.BUILD_IMAGE}} /bin/sh -c 'GOOS=linux go test -v -conver ./...'
+
+  build:
+    deps: [test, build-dirs]
+    actions: 
+      - docker run --rm -it -v $GOPATH:/go -w /go/src/{{.PKG}} {{.BUILD_IMAGE}} /bin/sh -c 'GOOS=linux go build -ldflags "-X main.Version={{.VERSION}}" -o build/bin/{{.BIN}}'
+
+  container:
+    deps: [test, clean, build-dirs]
+    actions: [
+      "docker run --rm -it -v $GOPATH:/go -w /go/src/{{.PKG}} golang:alpine /bin/sh -c 'go build -ldflags \"-X main.Version={{.VERSION}}\" -o build/bin/{{.BIN}}'",
+      "export ts=$(date +'%s'); docker build -t {{.BIN}}:{{.VERSION}}-${ts} . && docker tag {{.BIN}}:{{.VERSION}}-${ts} {{.BIN}}:latest; unset ts"
+    ]

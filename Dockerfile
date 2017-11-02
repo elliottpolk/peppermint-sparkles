@@ -1,4 +1,4 @@
-FROM alpine
+FROM alpine:latest
 MAINTAINER Elliott Polk <elliott@tkwcafe.com>
 
 RUN rm -rf /var/cache/apk/* && \

@@ -1,62 +1,58 @@
-// Copyright 2016 Elliott Polk. All rights reserved.
+// Copyright 2017 Elliott Polk. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 package cmd
 
 import (
-	"flag"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"net/url"
+	"strings"
+
+	"github.com/elliottpolk/confgr/log"
+	"github.com/elliottpolk/confgr/service"
+
+	"github.com/urfave/cli"
 )
 
-const Remove = "remove"
+func Remove(context *cli.Context) {
+	context.Command.VisibleFlags()
 
-var (
-	rmFlagSet *flag.FlagSet
-	rmApp     *string
-	rmEnv     *string
-)
-
-func init() {
-	rmFlagSet = flag.NewFlagSet(Remove, flag.ExitOnError)
-	rmApp = rmFlagSet.String(AppFlag, "", "app name to be removed")
-	rmEnv = rmFlagSet.String(EnvFlag, "", "environment config is for (e.g. PROD, DEV, TEST...)")
-}
-
-//  RemoveCfg takes in a list of cli arguments and attempts to call the confgr
-//  remote API to remove the provided app / environment config. If no environment
-//  flag is set in the command, 'default' is used. If the remote API returns an
-//  error or a status code other than 200, it is noted and the response body is
-//  returned as the error.
-func RemoveCfg(args []string) error {
-	if err := rmFlagSet.Parse(args[2:]); err != nil {
-		return err
-	}
-
-	if len(*rmEnv) < 1 {
-		fmt.Println("NOTE: 'env' flag is not set, defaults to 'default'\n")
-		*rmEnv = "default"
-	}
-
-	addr := GetConfgrAddr()
-
-	res, err := http.Get(fmt.Sprintf("%s/remove?app=%s&env=%s", addr, *rmApp, *rmEnv))
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	if code := res.StatusCode; code != http.StatusOK {
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			fmt.Println("unable to read remove error response body")
-			return err
+	addr := context.String(Simplify(AddrFlag.Name))
+	if len(addr) < 1 {
+		if err := cli.ShowCommandHelp(context, context.Command.FullName()); err != nil {
+			log.Error(err, "unable to display help")
 		}
-
-		fmt.Printf("remove API responded with a status code other than OK: %d\n", code)
-		return fmt.Errorf("%s", string(body))
+		return
 	}
 
-	return nil
+	app := context.String(Simplify(AppFlag.Name))
+	if len(app) < 1 {
+		if err := cli.ShowCommandHelp(context, context.Command.FullName()); err != nil {
+			log.Error(err, "unable to display help")
+		}
+		return
+	}
+
+	params := &url.Values{service.AppParam: []string{app}}
+
+	env := context.String(Simplify(EnvFlag.Name))
+	if len(env) > 0 {
+		params.Add(service.EnvParam, env)
+	} else {
+		var res string
+
+		fmt.Printf("remove all configs for %s? ", app)
+		fmt.Scanf("%s", &res)
+
+		res = strings.ToLower(res)
+
+		if len(res) > 0 && res[0:1] != "y" {
+			return
+		}
+	}
+
+	if _, err := retrieve(asURL(addr, service.PathRemove, params.Encode())); err != nil {
+		log.Error(err, "unable to remove config")
+		return
+	}
 }

@@ -1,4 +1,4 @@
-// Copyright 2016 Elliott Polk. All rights reserved.
+// Copyright 2017 Elliott Polk. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 package datastore
@@ -6,60 +6,82 @@ package datastore
 import (
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
+
+	"github.com/elliottpolk/confgr/log"
 
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 )
 
-const (
-	DefaultDSFile string = "/var/lib/confgr/confgr.db"
-	EnvDSFile     string = "DS_FILE"
+const Bucket string = "configs"
 
-	Bucket string = "configs"
-)
+type Datastore struct {
+	*bolt.DB
+	file string
+}
 
-var ds *bolt.DB
+var ds *Datastore
+
+func Current() *Datastore {
+	if ds == nil {
+		ds = &Datastore{}
+	}
+	return ds
+}
+
+func Open(f string) (*Datastore, error) {
+	ds = &Datastore{file: f}
+	if err := ds.Open(); err != nil {
+		return nil, errors.Wrap(err, "unable to open datastore file")
+	}
+
+	return ds, nil
+}
 
 //  Start will open a bolt key / value. If the datastore does not currently
 //  exist, a new one will be generated. It will also create the relevant bucket
 //  for storage if it does not exist.
-func Start() error {
-	var err error
-
-	dsfile := DefaultDSFile
-	if env := os.Getenv(EnvDSFile); env != "" {
-		dsfile = env
-	}
-
-	ds, err = bolt.Open(dsfile, 0600, nil)
+func (ds *Datastore) Open() error {
+	db, err := bolt.Open(ds.file, 0600, nil)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to open bolt data store")
 	}
 
-	//  capture a shutdown and close the datastore
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, os.Interrupt, os.Kill, syscall.SIGTERM)
-	go func(c chan os.Signal) {
-		// Wait for a SIGINT or SIGKILL
-		sig := <-c
-		fmt.Printf("caught signal %s: shutting down.", sig)
-
-		if err := ds.Close(); err != nil {
-			fmt.Printf("error while closing datastore: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Println("datastore closed")
-		os.Exit(0)
-	}(sigc)
+	ds.DB = db
 
 	return ds.Update(func(tx *bolt.Tx) error {
 		if _, err := tx.CreateBucketIfNotExists([]byte(Bucket)); err != nil {
-			return err
+			return errors.Wrap(err, "unable to create bucket")
 		}
 		return nil
 	})
+}
+
+func (ds *Datastore) Close(rm bool) error {
+	if err := ds.DB.Close(); err != nil {
+		return errors.Wrap(err, "unable to close datastore")
+	}
+
+	if rm {
+		if err := os.RemoveAll(ds.file); err != nil {
+			log.Error(err, "unable to remove datastore")
+			os.Exit(1)
+		}
+	}
+
+	return nil
+}
+
+func Key(values ...string) string {
+	res := ""
+	for _, v := range values {
+		if len(res) > 0 {
+			res = fmt.Sprintf("%s_", res)
+		}
+		res = fmt.Sprintf("%s%s", res, v)
+	}
+
+	return res
 }
 
 //  GetKeys iterates over the available keys and returns them as a list.

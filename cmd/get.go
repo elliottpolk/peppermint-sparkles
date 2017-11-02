@@ -1,93 +1,67 @@
-// Copyright 2016 Elliott Polk. All rights reserved.
+// Copyright 2017 Elliott Polk. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 package cmd
 
 import (
-	"encoding/base64"
 	"encoding/json"
-	"flag"
-	"fmt"
-	"io/ioutil"
-	"net/http"
+	"net/url"
 
 	"github.com/elliottpolk/confgr/config"
-	"github.com/elliottpolk/confgr/pgp"
+	"github.com/elliottpolk/confgr/log"
+	"github.com/elliottpolk/confgr/service"
+
+	"github.com/urfave/cli"
 )
 
-const Get = "get"
+func Get(context *cli.Context) {
+	context.Command.VisibleFlags()
 
-var (
-	getFlagSet *flag.FlagSet
-	getApp     *string
-	getEnv     *string
-	getDecrypt *bool
-	getToken   *string
-)
-
-func init() {
-	getFlagSet = flag.NewFlagSet(Get, flag.ExitOnError)
-	getApp = getFlagSet.String(AppFlag, "", "app name to retrieve respective config")
-	getEnv = getFlagSet.String(EnvFlag, "", "environment config is for (e.g. PROD, DEV, TEST...)")
-	getDecrypt = getFlagSet.Bool(DecryptFlag, false, "decrypt config")
-	getToken = getFlagSet.String(TokenFlag, "", "token to decrypt config with")
-}
-
-func GetCfg(args []string) error {
-	if err := getFlagSet.Parse(args[2:]); err != nil {
-		return err
+	addr := context.String(Simplify(AddrFlag.Name))
+	if len(addr) < 1 {
+		if err := cli.ShowCommandHelp(context, context.Command.FullName()); err != nil {
+			log.Error(err, "unable to display help")
+		}
+		return
 	}
 
-	if *getDecrypt && len(*getToken) < 1 {
-		fmt.Println("decryption token must be provided if decryption flag is set to true")
-		flag.Usage()
+	token := context.String(Simplify(TokenFlag.Name))
+	decrypt := context.Bool(Simplify(DecryptFlag.Name))
+
+	if decrypt && len(token) < 1 {
+		log.NewError("decrypt token must be specified in order to decrypt")
+		return
 	}
 
-	if len(*getEnv) < 1 {
-		fmt.Println("NOTE: 'env' flag is not set, defaults to 'default'\n")
-		*getEnv = "default"
+	params := &url.Values{}
+	if env := context.String(Simplify(EnvFlag.Name)); len(env) > 0 {
+		params.Add(service.EnvParam, env)
 	}
 
-	addr := GetConfgrAddr()
+	if app := context.String(Simplify(AppFlag.Name)); len(app) > 0 {
+		params.Add(service.AppParam, app)
+	}
 
-	res, err := http.Get(fmt.Sprintf("%s/get?app=%s&env=%s", addr, *getApp, *getEnv))
+	raw, err := retrieve(asURL(addr, service.PathFind, params.Encode()))
 	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return err
+		log.Error(err, "unable to retrieve config")
+		return
 	}
 
-	fmt.Printf("\n%s\n", string(body))
-
-	if *getDecrypt {
-		return decryptCfg(body)
+	cfgs := make([]*config.Config, 0)
+	if err := json.Unmarshal([]byte(raw), &cfgs); err != nil {
+		log.Error(err, "unable to convert string to configs")
+		return
 	}
 
-	return nil
-}
+	for _, cfg := range cfgs {
+		if decrypt && len(cfg.Value) > 0 {
+			if err := cfg.Decrypt(token); err != nil {
+				log.Error(err, "unable to decrypt config")
+			}
+		}
 
-func decryptCfg(data []byte) error {
-	cfg := &config.Config{}
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return err
+		log.Infof("\n%s\n", cfg.MustString())
 	}
 
-	t, err := base64.StdEncoding.DecodeString(*getToken)
-	if err != nil {
-		return err
-	}
-
-	plaintxt, err := pgp.Decrypt(t, []byte(cfg.Value))
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("decrypted config:")
-	fmt.Printf("%s\n", string(plaintxt))
-
-	return nil
 }
