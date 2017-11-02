@@ -45,7 +45,7 @@ func Serve(context *cli.Context) {
 			return
 		}
 
-		if err := os.MkdirAll(dir, 0644); err != nil {
+		if err := os.MkdirAll(dir, 0766); err != nil {
 			log.Error(err, "unable to create datastore directory")
 			return
 		}
