@@ -1,0 +1,79 @@
+// Created by Elliott Polk on 23/01/2018
+// Copyright © 2018 Manulife AM. All rights reserved.
+// oa-montreal/campx/main.go
+//
+package pgp
+
+import (
+	"bytes"
+	"encoding/base64"
+	"fmt"
+	"io/ioutil"
+
+	"golang.org/x/crypto/openpgp"
+	"golang.org/x/crypto/openpgp/armor"
+)
+
+const PGPMessageType string = "PGP MESSAGE"
+
+//  Encrypt takes a key and text which attempts to encode using the OpenPGP
+//  symmetrical encryption.
+func Encrypt(key, text []byte) ([]byte, error) {
+	buf := new(bytes.Buffer)
+
+	encodeWriter, err := armor.Encode(buf, PGPMessageType, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	ptxtWriter, err := openpgp.SymmetricallyEncrypt(encodeWriter, key, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Fprintf(ptxtWriter, string(text))
+
+	ptxtWriter.Close()
+	encodeWriter.Close()
+
+	return []byte(base64.StdEncoding.EncodeToString(buf.Bytes())), nil
+}
+
+//  Decrypt expects an OpenPGP encoded ciphertext, returning the decrypted results
+//  of the cipher text using the provided token.
+func Decrypt(token, ciphertxt []byte) ([]byte, error) {
+	decoded, err := base64.StdEncoding.DecodeString(string(ciphertxt))
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := armor.Decode(bytes.NewBuffer(decoded))
+	if err != nil {
+		return nil, err
+	}
+
+	readTick := 0
+	details, err := openpgp.ReadMessage(block.Body, nil, func(k []openpgp.Key, s bool) ([]byte, error) {
+		// 	temporary hack since this will be called several times when a given
+		//	token is not valid.
+		//	TODO :: review openpgp source for more info
+		if readTick > 100 {
+			return token, fmt.Errorf("invalid token provided")
+		}
+
+		readTick++
+		return token, nil
+	}, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	plaintxt, err := ioutil.ReadAll(details.UnverifiedBody)
+	if err != nil {
+		fmt.Println(string(plaintxt))
+		return nil, err
+	}
+
+	return plaintxt, nil
+}
