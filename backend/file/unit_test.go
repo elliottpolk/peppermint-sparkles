@@ -24,12 +24,12 @@ func TestOpen(t *testing.T) {
 	defer ds.Close()
 	defer os.RemoveAll(what)
 
-	want := "bar"
-	if err := ds.Set(ds.ToKey("foo"), want); err != nil {
+	key, want := "foo", "bar"
+	if err := ds.Set(key, want); err != nil {
 		t.Fatal(err)
 	}
 
-	if got := ds.Get(ds.ToKey("foo")); want != got {
+	if got := ds.Get(key); want != got {
 		t.Errorf("\nwant %s\ngot %s\n", want, got)
 	}
 }
@@ -42,7 +42,8 @@ func TestClose(t *testing.T) {
 	}
 	defer os.RemoveAll(what)
 
-	if err := ds.Set(ds.ToKey("foo"), "bar"); err != nil {
+	key := "foo"
+	if err := ds.Set(key, "bar"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -51,25 +52,8 @@ func TestClose(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if val := ds.Get(ds.ToKey("foo")); len(val) > 0 {
+	if val := ds.Get(key); len(val) > 0 {
 		t.Error("datastore returned value after closure")
-	}
-}
-
-func TestToKey(t *testing.T) {
-	wants := map[string][][]string{
-		"97df3588b5a3f24babc3851b372f0ba71a9dcdded43b14b9d06961bfc1707d9d": {{"foo", "bar", "baz"}},
-		"2c60dbf3773104dce76dfbda9b82a729e98a42a7a0b3f9bae5095c7bed752b90": {{"foo", "bar", "bazz"}, {"foo", "bar", "baz", "z"}},
-		"796362b8b4289fca4d666ab486487d6699e828f9c098fc1c91566c291ef682f6": {{"foo", "bar", "baz", " z"}},
-	}
-
-	ds := &Datastore{}
-	for want, vals := range wants {
-		for _, val := range vals {
-			if got := ds.ToKey(val...); want != got {
-				t.Errorf("\nwant: %s\ngot: %s", want, got)
-			}
-		}
 	}
 }
 
@@ -96,7 +80,7 @@ func TestKeys(t *testing.T) {
 	wants := []string{"foo", "bar", "baz"}
 	for _, w := range wants {
 		r := rand.NewSource(time.Now().UnixNano()).Int63()
-		if err := ds.Set(ds.ToKey(w), fmt.Sprintf("%d", r)); err != nil {
+		if err := ds.Set(w, fmt.Sprintf("%d", r)); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -109,7 +93,7 @@ func TestKeys(t *testing.T) {
 	for _, want := range wants {
 		found := false
 		for _, got := range keys {
-			if ds.ToKey(want) == got {
+			if want == got {
 				found = true
 			}
 		}
@@ -129,7 +113,7 @@ func TestSetGet(t *testing.T) {
 	defer ds.Close()
 	defer os.RemoveAll(what)
 
-	key, bar := ds.ToKey("foo"), "bar"
+	key, bar := "foo", "bar"
 	if got := ds.Get(key); len(got) > 0 {
 		t.Error("expected an empty result but return", got)
 	}
@@ -169,7 +153,7 @@ func TestRemove(t *testing.T) {
 	defer ds.Close()
 	defer os.RemoveAll(what)
 
-	key, bar := ds.ToKey("foo"), "bar"
+	key, bar := "foo", "bar"
 	if err := ds.Set(key, bar); err != nil {
 		t.Fatal(err)
 	}
@@ -186,4 +170,8 @@ func TestRemove(t *testing.T) {
 	if got := ds.Get(key); len(got) > 0 || got == bar {
 		t.Errorf("non-empty value of %s was returned after removal", got)
 	}
+}
+
+func TestList(t *testing.T) {
+	t.Error("TODO...")
 }

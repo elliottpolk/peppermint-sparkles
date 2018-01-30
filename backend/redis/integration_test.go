@@ -17,12 +17,9 @@ import (
 )
 
 func getPort() string {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for {
-		if n := r.Int63n(9999); n > 2000 {
-			return fmt.Sprintf("%d", n)
-		}
-	}
+	var min, max int64 = 2000, 9999
+	rand.Seed(time.Now().UnixNano())
+	return fmt.Sprintf("%d", rand.Int63n(max-min)+min)
 }
 
 func boot(name, port string) error {
@@ -100,7 +97,7 @@ func TestKeys(t *testing.T) {
 	wants := []string{"foo", "bar", "baz"}
 	for _, w := range wants {
 		r := rand.NewSource(time.Now().UnixNano()).Int63()
-		if err := ds.Set(ds.ToKey(w), fmt.Sprintf("%d", r)); err != nil {
+		if err := ds.Set(w, fmt.Sprintf("%d", r)); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -113,7 +110,7 @@ func TestKeys(t *testing.T) {
 	for _, want := range wants {
 		found := false
 		for _, got := range keys {
-			if ds.ToKey(want) == got {
+			if want == got {
 				found = true
 			}
 		}
@@ -138,7 +135,7 @@ func TestSetGet(t *testing.T) {
 	}
 	defer ds.Close()
 
-	key, bar := ds.ToKey("foo"), "bar"
+	key, bar := "foo", "bar"
 	if got := ds.Get(key); len(got) > 0 {
 		t.Error("expected an empty result but returned", got)
 	}
@@ -183,7 +180,7 @@ func TestRemove(t *testing.T) {
 	}
 	defer ds.Close()
 
-	key, bar := ds.ToKey("foo"), "bar"
+	key, bar := "foo", "bar"
 	if err := ds.Set(key, bar); err != nil {
 		t.Fatal(err)
 	}
@@ -200,4 +197,8 @@ func TestRemove(t *testing.T) {
 	if got := ds.Get(key); len(got) > 0 || got == bar {
 		t.Errorf("non-empty value of %s was returned after removal", got)
 	}
+}
+
+func TestList(t *testing.T) {
+	t.Error("TODO...")
 }

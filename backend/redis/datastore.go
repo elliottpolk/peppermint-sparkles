@@ -5,10 +5,8 @@
 package redis
 
 import (
-	"crypto/sha256"
-	"fmt"
-
 	"git.platform.manulife.io/go-common/log"
+	"git.platform.manulife.io/oa-montreal/campx/backend"
 
 	"github.com/go-redis/redis"
 	"github.com/pkg/errors"
@@ -38,16 +36,6 @@ func (ds *Datastore) Close() error {
 		return ds.client.Close()
 	}
 	return nil
-}
-
-//  ToKey takes in a list of strings and hashes using SHA256, returning the
-//  result as a string.
-func (ds *Datastore) ToKey(values ...string) string {
-	in := make([]byte, 0)
-	for _, v := range values {
-		in = append(in, []byte(v)...)
-	}
-	return fmt.Sprintf("%x", sha256.Sum256(in))
 }
 
 func (ds *Datastore) Keys() []string {
@@ -95,4 +83,17 @@ func (ds *Datastore) Remove(key string) error {
 	}
 
 	return ds.client.Del(key).Err()
+}
+
+func (ds *Datastore) List() ([]backend.Value, error) {
+	if ds.client == nil {
+		return nil, ErrInvalidDatastore
+	}
+
+	vals := make([]backend.Value, 0)
+	for _, k := range ds.Keys() {
+		vals = append(vals, backend.Value{k: ds.Get(k)})
+	}
+
+	return vals, nil
 }
