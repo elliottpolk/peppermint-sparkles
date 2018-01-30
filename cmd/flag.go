@@ -1,6 +1,6 @@
 // Created by Elliott Polk on 23/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/campx/main.go
+// oa-montreal/campx/cmd/flag.go
 //
 package cmd
 
@@ -22,8 +22,8 @@ var (
 		Usage: "environment of secret (e.g. PROD, DEV, TEST, etc.)",
 	}
 
-	SecretFlag = cli.StringFlag {
-		Name: "s, secret",
+	SecretFlag = cli.StringFlag{
+		Name:  "s, secret",
 		Usage: "secret to be stored",
 	}
 
@@ -46,25 +46,6 @@ var (
 		Name:   "addr",
 		Usage:  "campx service address",
 		EnvVar: "CAMPX_ADDR",
-	}
-
-	TlsCertFlag = cli.StringFlag{
-		Name:   "tls-cert",
-		Usage:  "TLS certificate file for HTTPS",
-		EnvVar: "CAMPX_TLS_CERT",
-	}
-
-	TlsKeyFlag = cli.StringFlag{
-		Name:   "tls-key",
-		Usage:  "TLS key file for HTTPS",
-		EnvVar: "CAMPX_TLS_KEY",
-	}
-
-	DatastoreFlag = cli.StringFlag{
-		Name:   "dsf, datastore-file",
-		Value:  "/var/lib/confgr/campx.db",
-		Usage:  "name / location of file for storing secrets",
-		EnvVar: "CAMPX_DS_FILE",
 	}
 )
 
