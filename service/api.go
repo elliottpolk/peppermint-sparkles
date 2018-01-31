@@ -1,93 +1,211 @@
 // Created by Elliott Polk on 23/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/campx/main.go
+// oa-montreal/campx/service/api.go
 //
 package service
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 
-	"git.platform.manulife.io/oa-montreal/campx/config"
-	"git.platform.manulife.io/oa-montreal/campx/log"
-	"git.platform.manulife.io/oa-montreal/campx/respond"
+	"git.platform.manulife.io/go-common/log"
+	"git.platform.manulife.io/go-common/respond"
+	"git.platform.manulife.io/oa-montreal/campx/backend"
+	"git.platform.manulife.io/oa-montreal/campx/middleware"
+	"git.platform.manulife.io/oa-montreal/campx/secret"
+
+	"github.com/pkg/errors"
 )
 
 const (
-	PathFind   string = "/api/v1/configs"
-	PathSet    string = "/api/v1/set"
-	PathRemove string = "/api/v1/remove"
-
-	AppParam string = "app"
+	AppParam string = "app_name"
 	EnvParam string = "env"
 )
 
-//  get is a http.HandleFunc that retrieves the relevant config for the provided
-//  'app' and 'env' query parameters. An empty 'env' parameter is valid as the
-//	config.Get will use 'default'. The results are run through json.MarshalIndent
-//	prior to writing back to the HTTP reponse.
-func Find(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+var idExp *regexp.Regexp = regexp.MustCompile(`secrets/(?P<id>[a-zA-Z\d]+)(\/)?$`)
 
-	params := r.URL.Query()
-	respond.WithJson(w, config.Find(params.Get(AppParam), params.Get(EnvParam)))
+type Handler struct {
+	Backend backend.Datastore
 }
 
-//  set is a http.HandleFunc that expects a valid config.Config in the request
-//  body. It attempts to save the config to the datastore, overwriting the existing
-//  app and environment config if one exists. If the save writes properly, a
-//	http.StatusOK (200) with the output of what was stored is returned.
-func Set(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	data, err := ioutil.ReadAll(r.Body)
+	matched, id, err := getId(r.URL.Path)
 	if err != nil {
-		log.Error(err, "unable to read request body")
-		respond.WithError(w, http.StatusBadRequest, "unable to read request body")
-
+		log.Error(err, "unable to parse ")
+		respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
 		return
 	}
 
-	cfg, err := config.NewConfig(string(data))
-	if err != nil {
-		log.Error(err, "unable to convert config from string")
-		respond.WithError(w, http.StatusBadRequest, "unable to parse config")
-
-		return
+	if !matched {
+		if r.Method == http.MethodPut ||
+			r.Method == http.MethodDelete {
+			respond.WithMethodNotAllowed(w)
+			return
+		}
 	}
 
-	if err := cfg.Save(); err != nil {
-		log.Errorf(err, "unable to save config for %s - %s", cfg.App, cfg.Environment)
-		respond.WithError(w, http.StatusInternalServerError, "unable to save config")
+	ds := h.Backend
 
+	switch r.Method {
+	case http.MethodGet:
+		//	if the id does not exist in the URI, check the params
+		if !matched {
+			params := r.URL.Query()
+
+			//	ensure an app name was specified
+			app := params.Get(AppParam)
+			if len(app) < 1 {
+				respond.WithErrorMessage(w, http.StatusBadRequest, "a valid app must be specified")
+				return
+			}
+
+			//	if an environment was provided, convert app + env value to a backend
+			//	key and attempt to retrieve
+			if env := params.Get(EnvParam); len(env) > 0 {
+				id = backend.Key(app, env)
+			} else {
+				//	no environment value was provided, so list out all apps and attempt
+				//	to only get the secrets for the provided app name
+				res, err := ds.List()
+				if err != nil {
+					log.Error(err, "unable to list out current values from datastore")
+					respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to retrieve secrets")
+					return
+				}
+
+				secrets := make([]*secret.Secret, 0)
+				for _, r := range res {
+					for _, v := range r {
+						s := &secret.Secret{}
+						if err := json.Unmarshal([]byte(v), &s); err != nil {
+							//	this is likely a larger issue, so make no assumptions and bail
+							log.Error(err, "unable to unmarshal secret")
+							respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to retrieve secrets")
+							return
+						}
+
+						if s.App == app {
+							secrets = append(secrets, s)
+						}
+					}
+				}
+
+				respond.WithJson(w, secrets)
+				return
+			}
+		}
+
+		raw := ds.Get(id)
+		if len(raw) < 1 {
+			respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
+			return
+		}
+
+		s, err := secret.NewSecret(raw)
+		if err != nil {
+			log.Error(err, "unable to parse stored secret")
+			respond.WithError(w, http.StatusBadRequest, err, "invalid secret")
+			return
+		}
+
+		respond.WithJson(w, s)
+		return
+
+	case http.MethodPost,
+		http.MethodPut:
+
+		in, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			log.Error(err, "unable to read in request body")
+			respond.WithError(w, http.StatusBadRequest, err, "unable to read in request")
+			return
+		}
+
+		//	convert request body to secret to (sort of) ensure data received is
+		//	in the expected secret format
+		s := &secret.Secret{}
+		if err := json.Unmarshal(in, &s); err != nil {
+			log.Error(err, "unable to unmarshal request to secret")
+			respond.WithError(w, http.StatusBadRequest, err, "unable to convert request to valid secret")
+			return
+		}
+
+		//	if no id is provided, generate a new "key" using the app name and env
+		if !matched {
+			id = backend.Key(s.App, s.Env)
+		}
+
+		if len(s.Id) < 1 {
+			s.Id = id
+		}
+
+		//	check if the secret with the current id exists in the datastore
+		exists := (len(ds.Get(id)) > 0)
+
+		//	convert back to string before storage
+		out, err := json.Marshal(s)
+		if err != nil {
+			log.Error(err, "unable to marshal secret")
+			respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to prep secret for storage")
+			return
+		}
+
+		if err := ds.Set(id, string(out)); err != nil {
+			log.Error(err, "unable to write secret to storage")
+			respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to write secret to storage")
+			return
+		}
+
+		//	respond with 201 if the resource did not exist before
+		if !exists {
+			respond.WithJsonCreated(w, s)
+			return
+		}
+
+		respond.WithJson(w, s)
+		return
+
+	case http.MethodDelete:
+		if err := ds.Remove(id); err != nil {
+			log.Errorf("%v: unable to remove secret for id %s", err, id)
+			respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to remove secret")
+			return
+		}
+
+		respond.WithJson(w, nil)
+		return
+
+	default:
+		respond.WithMethodNotAllowed(w)
 		return
 	}
-
-	respond.WithJson(w, cfg)
 }
 
-//  remove is a http.HandleFunc that removes the relevant config for the provided
-//  'app' and 'env' query parameters. An empty 'env' parameter is valid as the
-//	config.Remove will use 'default'. If no config exists, no error is returned.
-//	If the remove occurs properly, a http.StatusOK (200) is returned automatically
-//	upon return.
-func Remove(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-	params := r.URL.Query()
+func Handle(mux *http.ServeMux, h *Handler) *http.ServeMux {
+	mux.Handle("/api/v1/secrets", middleware.Handler(h))
+	mux.Handle("/api/v1/secrets/", middleware.Handler(h))
+	return mux
+}
 
-	app := params.Get(AppParam)
-	if len(app) < 1 {
-		respond.WithError(w, http.StatusBadRequest, "invalid app name provided")
-		return
+func getId(path string) (bool, string, error) {
+	matched, err := regexp.Match(idExp.String(), []byte(path))
+	if err != nil {
+		return false, "", errors.Wrap(err, "unable to process path")
 	}
 
-	env := params.Get(EnvParam)
-	if err := config.Remove(app, env); err != nil {
-		log.Errorf(err, "unable to remove config for %s - %s", app, env)
-		respond.WithError(w, http.StatusInternalServerError, "unable to remove app config")
+	if matched {
+		matches, m := idExp.FindStringSubmatch(path), make(map[string]string)
+		for i, n := range idExp.SubexpNames() {
+			if i > 0 && i <= len(matches) {
+				m[n] = matches[i]
+			}
+		}
 
-		return
+		return true, m["id"], nil
 	}
-
-	respond.WithDefaultOk(w)
+	return false, "", nil
 }
