@@ -200,5 +200,43 @@ func TestRemove(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	t.Error("TODO...")
+	name := fmt.Sprintf("redis_%d", time.Now().UnixNano())
+	port := getPort()
+	if err := boot(name, port); err != nil {
+		t.Fatal(err)
+	}
+	defer kill(name)
+
+	ds, err := Open(&redis.Options{Addr: fmt.Sprintf("localhost:%s", port)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ds.Close()
+
+	wants := map[string]string{
+		"97df3588b5a3f24babc3851b372f0ba71a9dcdded43b14b9d06961bfc1707d9d": "foo",
+		"ebf3b019bb7e36bdc0fbc4159345c04af54193ccf43ae4572922f6d4aa94bd5b": "bar",
+		"2c60dbf3773104dce76dfbda9b82a729e98a42a7a0b3f9bae5095c7bed752b90": "baz",
+		"796362b8b4289fca4d666ab486487d6699e828f9c098fc1c91566c291ef682f6": "biz",
+	}
+
+	//	fill the datastore with sample values
+	for k, v := range wants {
+		if err := ds.Set(k, v); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	gots, err := ds.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, vals := range gots {
+		for k, got := range vals {
+			if want, ok := wants[k]; !ok || want != got {
+				t.Errorf("\nwant %s\ngot %s\n---\n", want, got)
+			}
+		}
+	}
 }
