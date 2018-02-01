@@ -6,6 +6,7 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -20,6 +21,8 @@ import (
 )
 
 const (
+	PathSecrets string = "/api/v1/secrets"
+
 	AppParam string = "app_name"
 	EnvParam string = "env"
 )
@@ -112,7 +115,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		respond.WithJson(w, s)
+		if matched {
+			respond.WithJson(w, s)
+			return
+		}
+
+		respond.WithJson(w, []*secret.Secret{s})
 		return
 
 	case http.MethodPost,
@@ -186,8 +194,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func Handle(mux *http.ServeMux, h *Handler) *http.ServeMux {
-	mux.Handle("/api/v1/secrets", middleware.Handler(h))
-	mux.Handle("/api/v1/secrets/", middleware.Handler(h))
+	mux.Handle(PathSecrets, middleware.Handler(h))
+	mux.Handle(fmt.Sprintf("%s/", PathSecrets), middleware.Handler(h))
 	return mux
 }
 
