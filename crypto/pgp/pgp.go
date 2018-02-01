@@ -1,12 +1,13 @@
 // Created by Elliott Polk on 23/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/campx/main.go
+// oa-montreal/campx/crypto/pgp/pgp.go
 //
 package pgp
 
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 
@@ -16,17 +17,23 @@ import (
 
 const PGPMessageType string = "PGP MESSAGE"
 
+var ErrInvalidToken error = errors.New("invalid token")
+
+type Crypter struct {
+	Token []byte
+}
+
 //  Encrypt takes a key and text which attempts to encode using the OpenPGP
 //  symmetrical encryption.
-func Encrypt(key, text []byte) ([]byte, error) {
+func (c *Crypter) Encrypt(text []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	encodeWriter, err := armor.Encode(buf, PGPMessageType, nil)
+	encoder, err := armor.Encode(buf, PGPMessageType, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	ptxtWriter, err := openpgp.SymmetricallyEncrypt(encodeWriter, key, nil, nil)
+	ptxtWriter, err := openpgp.SymmetricallyEncrypt(encoder, c.Token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -34,15 +41,15 @@ func Encrypt(key, text []byte) ([]byte, error) {
 	fmt.Fprintf(ptxtWriter, string(text))
 
 	ptxtWriter.Close()
-	encodeWriter.Close()
+	encoder.Close()
 
 	return []byte(base64.StdEncoding.EncodeToString(buf.Bytes())), nil
 }
 
-//  Decrypt expects an OpenPGP encoded ciphertext, returning the decrypted results
-//  of the cipher text using the provided token.
-func Decrypt(token, ciphertxt []byte) ([]byte, error) {
-	decoded, err := base64.StdEncoding.DecodeString(string(ciphertxt))
+//  Decrypt expects an OpenPGP encoded cypher, returning the decrypted results
+//  of the cypher text using the provided token.
+func (c *Crypter) Decrypt(cypher []byte) ([]byte, error) {
+	decoded, err := base64.StdEncoding.DecodeString(string(cypher))
 	if err != nil {
 		return nil, err
 	}
@@ -58,11 +65,11 @@ func Decrypt(token, ciphertxt []byte) ([]byte, error) {
 		//	token is not valid.
 		//	TODO :: review openpgp source for more info
 		if readTick > 100 {
-			return token, fmt.Errorf("invalid token provided")
+			return c.Token, ErrInvalidToken
 		}
 
 		readTick++
-		return token, nil
+		return c.Token, nil
 	}, nil)
 
 	if err != nil {
