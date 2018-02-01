@@ -49,7 +49,7 @@ var (
 	AddrFlag = cli.StringFlag{
 		Name:   "addr",
 		Usage:  "secrets service address",
-		EnvVar: "CAMPX_ADDR",
+		EnvVar: "SECRETS_ADDR",
 	}
 )
 

@@ -27,47 +27,47 @@ var (
 		Name:   "p, port",
 		Value:  "8080",
 		Usage:  "HTTP port to listen on",
-		EnvVar: "CAMPX_HTTP_PORT",
+		EnvVar: "SECRETS_HTTP_PORT",
 	}
 
 	TlsListenPortFlag = cli.StringFlag{
 		Name:   "tls-port",
 		Value:  "8443",
 		Usage:  "HTTPS port to listen on",
-		EnvVar: "CAMPX_HTTPS_PORT",
+		EnvVar: "SECRETS_HTTPS_PORT",
 	}
 
 	TlsCertFlag = cli.StringFlag{
 		Name:   "tls-cert",
 		Usage:  "TLS certificate file for HTTPS",
-		EnvVar: "CAMPX_TLS_CERT",
+		EnvVar: "SECRETS_TLS_CERT",
 	}
 
 	TlsKeyFlag = cli.StringFlag{
 		Name:   "tls-key",
 		Usage:  "TLS key file for HTTPS",
-		EnvVar: "CAMPX_TLS_KEY",
+		EnvVar: "SECRETS_TLS_KEY",
 	}
 
 	DatastoreTypeFlag = cli.StringFlag{
 		Name:   "dst, datastore-type",
 		Value:  backend.File,
 		Usage:  "backend type to be used for storage",
-		EnvVar: "CAMPX_DS_TYPE",
+		EnvVar: "SECRETS_DS_TYPE",
 	}
 
 	DatastoreFileFlag = cli.StringFlag{
 		Name:   "dsf, datastore-file",
 		Value:  "/var/lib/secrets/secrets.db",
 		Usage:  "name / location of file for storing secrets",
-		EnvVar: "CAMPX_DS_FILE",
+		EnvVar: "SECRETS_DS_FILE",
 	}
 
 	DatastoreAddrFlag = cli.StringFlag{
 		Name:   "dsa, datastore-addr",
 		Value:  "localhost:6379",
 		Usage:  "address for the remote datastore",
-		EnvVar: "CAMPX_DS_ADDR",
+		EnvVar: "SECRETS_DS_ADDR",
 	}
 )
 
