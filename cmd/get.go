@@ -8,8 +8,9 @@ import (
 	"encoding/json"
 	"net/url"
 
-	"git.platform.manulife.io/oa-montreal/campx/config"
-	"git.platform.manulife.io/oa-montreal/campx/log"
+	"git.platform.manulife.io/go-common/log"
+	"git.platform.manulife.io/oa-montreal/campx/crypto/pgp"
+	"git.platform.manulife.io/oa-montreal/campx/secret"
 	"git.platform.manulife.io/oa-montreal/campx/service"
 
 	"github.com/urfave/cli"
@@ -26,6 +27,12 @@ func Get(context *cli.Context) {
 		return
 	}
 
+	app := context.String(flag(AppNameFlag.Name))
+	if len(app) < 1 {
+		log.NewError("a valid app name must be provided")
+		return
+	}
+
 	token := context.String(flag(TokenFlag.Name))
 	decrypt := context.Bool(flag(DecryptFlag.Name))
 
@@ -34,35 +41,36 @@ func Get(context *cli.Context) {
 		return
 	}
 
-	params := &url.Values{}
-	if env := context.String(flag(EnvFlag.Name)); len(env) > 0 {
+	params := &url.Values{service.AppParam: []string{app}}
+	if env := context.String(flag(AppEnvFlag.Name)); len(env) > 0 {
 		params.Add(service.EnvParam, env)
 	}
 
-	if app := context.String(flag(AppFlag.Name)); len(app) > 0 {
-		params.Add(service.AppParam, app)
-	}
-
-	raw, err := retrieve(asURL(addr, service.PathFind, params.Encode()))
+	raw, err := retrieve(asURL(addr, service.PathSecrets, params.Encode()))
 	if err != nil {
-		log.Error(err, "unable to retrieve config")
+		log.Error(err, "unable to retrieve secret")
 		return
 	}
 
-	cfgs := make([]*config.Config, 0)
-	if err := json.Unmarshal([]byte(raw), &cfgs); err != nil {
-		log.Error(err, "unable to convert string to configs")
+	//  test / validate if stored content meets the secrets model and also
+	//  to allow for decryption
+	secrets := make([]*secret.Secret, 0)
+	if err := json.Unmarshal([]byte(raw), &secrets); err != nil {
+		log.Error(err, "unable to convert string to secrets")
 		return
 	}
 
-	for _, cfg := range cfgs {
-		if decrypt && len(cfg.Value) > 0 {
-			if err := cfg.Decrypt(token); err != nil {
-				log.Error(err, "unable to decrypt config")
+	for _, s := range secrets {
+		if decrypt {
+			c := pgp.Crypter{Token: []byte(token)}
+			res, err := c.Decrypt([]byte(s.Content))
+			if err != nil {
+				log.Error(err, "unable to decrypt secret")
+				continue
 			}
+			s.Content = string(res)
 		}
 
-		log.Infof("\n%s\n", cfg.MustString())
+		log.Infof("\n%s\n", s.MustString())
 	}
-
 }

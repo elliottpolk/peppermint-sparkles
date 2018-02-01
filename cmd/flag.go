@@ -11,15 +11,19 @@ import (
 )
 
 var (
-	AppFlag = cli.StringFlag{
-		Name:  "a, app",
-		Usage: "app name of secrets",
+	AppNameFlag = cli.StringFlag{
+		Name:  "a, app, app-name",
+		Usage: "app name of secret",
 	}
 
-	EnvFlag = cli.StringFlag{
-		Name:  "e, env",
-		Value: "default",
+	AppEnvFlag = cli.StringFlag{
+		Name:  "e, env, app-env",
 		Usage: "environment of secret (e.g. PROD, DEV, TEST, etc.)",
+	}
+
+	SecretIdFlag = cli.StringFlag{
+		Name:  "id, secret-id",
+		Usage: "generated ID of secret",
 	}
 
 	SecretFlag = cli.StringFlag{

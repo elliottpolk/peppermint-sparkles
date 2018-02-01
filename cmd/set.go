@@ -7,8 +7,10 @@ package cmd
 import (
 	"encoding/json"
 
-	"git.platform.manulife.io/oa-montreal/campx/config"
-	"git.platform.manulife.io/oa-montreal/campx/log"
+	"git.platform.manulife.io/go-common/log"
+	"git.platform.manulife.io/oa-montreal/campx/crypto"
+	"git.platform.manulife.io/oa-montreal/campx/crypto/pgp"
+	"git.platform.manulife.io/oa-montreal/campx/secret"
 	"git.platform.manulife.io/oa-montreal/campx/service"
 
 	"github.com/urfave/cli"
@@ -25,47 +27,76 @@ func Set(context *cli.Context) {
 		return
 	}
 
-	app := context.String(flag(AppFlag.Name))
+	app := context.String(flag(AppNameFlag.Name))
 	if len(app) < 1 {
-		if err := cli.ShowCommandHelp(context, context.Command.FullName()); err != nil {
-			log.Error(err, "unable to display help")
-		}
+		log.NewError("a valid app name must be provided")
 		return
 	}
 
-	cfg := &config.Config{
-		App:         app,
-		Environment: context.String(flag(EnvFlag.Name)),
-		Value:       context.String(flag(SecretFlag.Name)),
+	env := context.String(flag(AppEnvFlag.Name))
+	if len(env) < 1 {
+		log.NewError("a valid app environment must be provided")
+		return
 	}
 
-	token := context.String(flag(TokenFlag.Name))
+	s := &secret.Secret{
+		App:     app,
+		Env:     env,
+		Content: context.String(flag(SecretFlag.Name)),
+	}
+
+	c := &pgp.Crypter{}
 	encrypt := context.Bool(flag(EncryptFlag.Name))
+
 	if encrypt {
-		t, err := cfg.Encrypt(token)
+		token := context.String(flag(TokenFlag.Name))
+		if len(token) < 1 {
+			//	attempt to generate a token if one not provided, erroring and exiting
+			//	if unable. This attempts to prevent encrypting with empty string
+			t, err := crypto.NewToken()
+			if err != nil {
+				log.Error(err, "unable to generate encryption token")
+				return
+			}
+			token = t
+		}
+
+		c.Token = []byte(token)
+
+		cypher, err := c.Encrypt([]byte(s.Content))
 		if err != nil {
-			log.Error(err, "unable to encrypt config")
+			log.Error(err, "unable to encrypt secret content")
 			return
 		}
 
-		token = t
+		s.Content = string(cypher)
 	}
 
-	out, err := json.Marshal(cfg)
+	out, err := json.Marshal(s)
 	if err != nil {
-		log.Error(err, "unable to marshal config")
+		log.Error(err, "unable to convert secret to JSON string")
 		return
 	}
 
-	res, err := send(asURL(addr, service.PathSet, ""), string(out))
+	res, err := send(asURL(addr, service.PathSecrets, ""), string(out))
 	if err != nil {
 		log.Error(err, "unable to send config")
 		return
 	}
 
-	if encrypt {
-		log.Infof("token: %s", token)
+	//	convert from and back to JSON string to provide "prettier" formatting
+	ugly := &secret.Secret{}
+	if err := json.Unmarshal([]byte(res), &ugly); err != nil {
+		log.Error(err, "unable to parse in JSON string for pretty output")
 	}
 
-	log.Infof("config:\n%s", res)
+	pretty, err := json.MarshalIndent(ugly, "", "   ")
+	if err != nil {
+		log.Error(err, "unable to marshal secret back to (prettier) JSON string")
+	}
+
+	if encrypt {
+		log.Infof("token: %s", c.Token)
+	}
+	log.Infof("secret:\n%s", string(pretty))
 }

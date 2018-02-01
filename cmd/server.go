@@ -6,13 +6,11 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
-	"strings"
 
 	"git.platform.manulife.io/go-common/log"
+	"git.platform.manulife.io/go-common/pcf/vcap"
 	"git.platform.manulife.io/oa-montreal/campx/backend"
 	fileds "git.platform.manulife.io/oa-montreal/campx/backend/file"
 	redisds "git.platform.manulife.io/oa-montreal/campx/backend/redis"
@@ -20,7 +18,6 @@ import (
 
 	bolt "github.com/coreos/bbolt"
 	"github.com/go-redis/redis"
-	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
@@ -86,10 +83,26 @@ func Serve(context *cli.Context) {
 
 	switch dst {
 	case backend.Redis:
+		opts := &redis.Options{Addr: context.String(flag(DatastoreAddrFlag.Name))}
 
-		//	TODO ... include / handle additional Redis options (e.g. timeout, etc)
-		addr := context.String(flag(DatastoreAddrFlag.Name))
-		if ds, err = redisds.Open(&redis.Options{Addr: addr}); err != nil {
+		//	check if running in PCF pull the vcap services if available
+		services, err := vcap.GetServices()
+		if err != nil {
+			log.Error(err, "unable to retrieve vcap services")
+			return
+		}
+
+		if services != nil {
+			if i := services.Tagged(dst); i != nil {
+				creds := i.Credentials
+				opts = &redis.Options{
+					Addr:     fmt.Sprintf("%s:%s", creds.Get("host"), creds.Get("port")),
+					Password: creds.Get("password"),
+				}
+			}
+		}
+
+		if ds, err = redisds.Open(opts); err != nil {
 			log.Error(err, "unable to open connection to datastore")
 			return
 		}
@@ -143,60 +156,4 @@ func Serve(context *cli.Context) {
 
 	addr := fmt.Sprintf(":%s", context.String(flag(StdListenPortFlag.Name)))
 	log.Fatal(http.ListenAndServe(addr, mux))
-}
-
-func asURL(addr, path, params string) string {
-	scheme := "http"
-	if https := "https"; strings.HasPrefix(addr, https) {
-		addr = strings.TrimPrefix(addr, fmt.Sprintf("%s://", https))
-		scheme = https
-	}
-
-	//	attempt to scrub the scheme if it was not handled above
-	addr = strings.TrimPrefix(addr, "http://")
-
-	return (&url.URL{
-		Scheme:   scheme,
-		Host:     addr,
-		Path:     path,
-		RawQuery: params,
-	}).String()
-}
-
-func retrieve(from string) (string, error) {
-	res, err := http.Get(from)
-	if err != nil {
-		return "", errors.Wrap(err, "unable to call service")
-	}
-	defer res.Body.Close()
-
-	b, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return "", errors.Wrap(err, "unable to read service response body")
-	}
-
-	if code := res.StatusCode; code != http.StatusOK {
-		return "", errors.Errorf("confgr service responded with status code %d and message %s", code, string(b))
-	}
-
-	return string(b), nil
-}
-
-func send(to, body string) (string, error) {
-	res, err := http.Post(to, http.DetectContentType([]byte(body)), strings.NewReader(body))
-	if err != nil {
-		return "", errors.Wrap(err, "unable to post config")
-	}
-	defer res.Body.Close()
-
-	b, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return "", errors.Wrap(err, "unable read service response body")
-	}
-
-	if code := res.StatusCode; code != http.StatusOK {
-		return "", errors.Errorf("confgr service responded with status code %d and message %s", code, string(b))
-	}
-
-	return string(b), nil
 }
