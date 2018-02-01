@@ -5,7 +5,11 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/json"
+	"io"
+	"math"
+	"os"
 
 	"git.platform.manulife.io/go-common/log"
 	"git.platform.manulife.io/oa-montreal/secrets/crypto"
@@ -39,10 +43,40 @@ func Set(context *cli.Context) {
 		return
 	}
 
+	content := context.String(flag(SecretFlag.Name))
+	if len(content) < 1 {
+		fi, err := os.Stdin.Stat()
+		if err != nil {
+			log.Error(err, "unable to stat stdin")
+			return
+		}
+
+		if fi.Mode()&os.ModeCharDevice != 0 || fi.Size() < 1 {
+			log.NewError("a secret must be provided")
+			return
+		}
+
+		buf, res := bufio.NewReader(os.Stdin), make([]byte, 0)
+		for {
+			in, _, err := buf.ReadLine()
+			if err != nil && err == io.EOF {
+				break
+			}
+			res = append(res, in...)
+
+			if len(res) > (int(math.Pow10(7)) * 3) {
+				log.NewError("secret data should be less than 3MB in size")
+				return
+			}
+		}
+
+		content = string(res)
+	}
+
 	s := &secret.Secret{
 		App:     app,
 		Env:     env,
-		Content: context.String(flag(SecretFlag.Name)),
+		Content: content,
 	}
 
 	c := &pgp.Crypter{}
