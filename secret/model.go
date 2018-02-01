@@ -6,6 +6,7 @@ package secret
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/pkg/errors"
 )
@@ -25,4 +26,22 @@ func NewSecret(raw string) (*Secret, error) {
 	}
 
 	return s, nil
+}
+
+func (s *Secret) String() (string, error) {
+	out, err := json.MarshalIndent(s, "", " ")
+	if err != nil {
+		return "", err
+	}
+
+	return string(out), nil
+}
+
+func (s *Secret) MustString() string {
+	str, err := s.String()
+	if err != nil {
+		return fmt.Sprintf("%+v", s)
+	}
+
+	return str
 }
