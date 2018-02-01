@@ -5,10 +5,8 @@
 package cmd
 
 import (
-	"bufio"
 	"encoding/json"
-	"io"
-	"math"
+	"io/ioutil"
 	"os"
 
 	"git.platform.manulife.io/go-common/log"
@@ -17,80 +15,76 @@ import (
 	"git.platform.manulife.io/oa-montreal/secrets/secret"
 	"git.platform.manulife.io/oa-montreal/secrets/service"
 
-	"github.com/urfave/cli"
+	"github.com/pkg/errors"
+	"gopkg.in/urfave/cli.v2"
 )
 
-func Set(context *cli.Context) {
-	context.Command.VisibleFlags()
-
-	addr := context.String(flag(AddrFlag.Name))
+func Set(context *cli.Context) error {
+	addr := context.String(AddrFlag.Names()[0])
 	if len(addr) < 1 {
-		if err := cli.ShowCommandHelp(context, context.Command.FullName()); err != nil {
-			log.Error(err, "unable to display help")
-		}
-		return
+		cli.ShowCommandHelpAndExit(context, context.Command.FullName(), 1)
+		return nil
 	}
 
-	app := context.String(flag(AppNameFlag.Name))
-	if len(app) < 1 {
-		log.NewError("a valid app name must be provided")
-		return
+	raw, f := context.String(SecretFlag.Names()[0]), context.String(SecretFileFlag.Names()[0])
+	if len(raw) > 0 && len(f) > 0 {
+		return cli.Exit(errors.New("only 1 input method is allowed"), 1)
 	}
 
-	env := context.String(flag(AppEnvFlag.Name))
-	if len(env) < 1 {
-		log.NewError("a valid app environment must be provided")
-		return
-	}
-
-	content := context.String(flag(SecretFlag.Name))
-	if len(content) < 1 {
-		fi, err := os.Stdin.Stat()
+	//	raw should not have anything if this is true
+	if len(f) > 0 {
+		info, err := os.Stat(f)
 		if err != nil {
-			log.Error(err, "unable to stat stdin")
-			return
+			return cli.Exit(errors.Wrap(err, "uanble to access secrets file"), 1)
 		}
 
-		if fi.Mode()&os.ModeCharDevice != 0 || fi.Size() < 1 {
-			log.NewError("a secret must be provided")
-			return
+		if info.Size() > int64(MaxData) {
+			return cli.Exit(errors.New("secret must be less than 3MB"), 1)
 		}
 
-		buf, res := bufio.NewReader(os.Stdin), make([]byte, 0)
-		for {
-			in, _, err := buf.ReadLine()
-			if err != nil && err == io.EOF {
-				break
-			}
-			res = append(res, in...)
-
-			if len(res) > (int(math.Pow10(7)) * 3) {
-				log.NewError("secret data should be less than 3MB in size")
-				return
-			}
+		r, err := ioutil.ReadFile(f)
+		if err != nil {
+			return cli.Exit(errors.Wrap(err, "unable to read in secret file"), 1)
 		}
 
-		content = string(res)
+		raw = string(r)
 	}
 
-	s := &secret.Secret{
-		App:     app,
-		Env:     env,
-		Content: content,
+	//	if raw is still empty at this point, attempt to read in piped data
+	tick := 0
+	for len(raw) < 1 {
+		if tick > 0 {
+			return cli.Exit(errors.New("a valid secret must be specified"), 1)
+		}
+
+		r, err := pipe()
+		if err != nil {
+			switch err {
+			case ErrNoPipe:
+				return cli.Exit(errors.New("a valid secret must be specified"), 1)
+			case ErrDataTooLarge:
+				return cli.Exit(errors.New("secret must be less than 3MB"), 1)
+			default:
+				return cli.Exit(errors.Wrap(err, "unable to read piped in data"), 1)
+			}
+		}
+		raw, tick = r, +1
 	}
 
-	c := &pgp.Crypter{}
-	encrypt := context.Bool(flag(EncryptFlag.Name))
+	s, err := secret.NewSecret(raw)
+	if err != nil {
+		return cli.Exit(errors.Wrap(err, "unable to parse secret"), 1)
+	}
 
+	c, encrypt := &pgp.Crypter{}, context.Bool(EncryptFlag.Names()[0])
 	if encrypt {
-		token := context.String(flag(TokenFlag.Name))
+		token := context.String(TokenFlag.Names()[0])
 		if len(token) < 1 {
 			//	attempt to generate a token if one not provided, erroring and exiting
 			//	if unable. This attempts to prevent encrypting with empty string
 			t, err := crypto.NewToken()
 			if err != nil {
-				log.Error(err, "unable to generate encryption token")
-				return
+				return cli.Exit(errors.Wrap(err, "unable to generate encryption token"), 1)
 			}
 			token = t
 		}
@@ -99,26 +93,24 @@ func Set(context *cli.Context) {
 
 		cypher, err := c.Encrypt([]byte(s.Content))
 		if err != nil {
-			log.Error(err, "unable to encrypt secret content")
-			return
+			return cli.Exit(errors.Wrap(err, "unable to encrypt secret content"), 1)
 		}
 
 		s.Content = string(cypher)
 	}
 
+	//	convert to JSON string for sending to secrets service
 	out, err := json.Marshal(s)
 	if err != nil {
-		log.Error(err, "unable to convert secret to JSON string")
-		return
+		return cli.Exit(errors.Wrap(err, "unable to convert secret to JSON string"), 1)
 	}
 
 	res, err := send(asURL(addr, service.PathSecrets, ""), string(out))
 	if err != nil {
-		log.Error(err, "unable to send config")
-		return
+		return cli.Exit(errors.Wrap(err, "unable to send config"), 1)
 	}
 
-	//	convert from and back to JSON string to provide "prettier" formatting
+	//	convert from and back to JSON string to provide "prettier" formatting on print
 	ugly := &secret.Secret{}
 	if err := json.Unmarshal([]byte(res), &ugly); err != nil {
 		log.Error(err, "unable to parse in JSON string for pretty output")
@@ -129,8 +121,11 @@ func Set(context *cli.Context) {
 		log.Error(err, "unable to marshal secret back to (prettier) JSON string")
 	}
 
+	//	ensure to display encryption token, since it may have been generated
 	if encrypt {
 		log.Infof("token: %s", c.Token)
 	}
 	log.Infof("secret:\n%s", string(pretty))
+
+	return nil
 }

@@ -7,31 +7,27 @@ package cmd
 import (
 	"fmt"
 
-	"git.platform.manulife.io/go-common/log"
 	"git.platform.manulife.io/oa-montreal/secrets/service"
 
-	"github.com/urfave/cli"
+	"github.com/pkg/errors"
+	"gopkg.in/urfave/cli.v2"
 )
 
-func Remove(context *cli.Context) {
-	context.Command.VisibleFlags()
-
-	addr := context.String(flag(AddrFlag.Name))
+func Remove(context *cli.Context) error {
+	addr := context.String(AddrFlag.Names()[0])
 	if len(addr) < 1 {
-		if err := cli.ShowCommandHelp(context, context.Command.FullName()); err != nil {
-			log.Error(err, "unable to display help")
-		}
-		return
+		cli.ShowCommandHelpAndExit(context, context.Command.FullName(), 1)
+		return nil
 	}
 
-	id := context.String(flag(SecretIdFlag.Name))
+	id := context.String(SecretIdFlag.Names()[0])
 	if len(id) < 1 {
-		log.NewError("a valid secret ID must be provided")
-		return
+		return cli.Exit(errors.New("a valid secret ID must be provided"), 1)
 	}
 
 	if _, err := del(asURL(addr, fmt.Sprintf("%s/%s", service.PathSecrets, id), "")); err != nil {
-		log.Error(err, "unable to remove secrets")
-		return
+		return cli.Exit(errors.Wrap(err, "unable to remove secrets"), 1)
 	}
+
+	return nil
 }

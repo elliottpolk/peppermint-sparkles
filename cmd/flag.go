@@ -4,11 +4,7 @@
 //
 package cmd
 
-import (
-	"strings"
-
-	"github.com/urfave/cli"
-)
+import "gopkg.in/urfave/cli.v2"
 
 var (
 	AppNameFlag = cli.StringFlag{
@@ -31,8 +27,14 @@ var (
 		Usage: "secret to be stored",
 	}
 
+	SecretFileFlag = cli.StringFlag{
+		Name:  "f, secret-file",
+		Usage: "filepath to secret",
+	}
+
 	EncryptFlag = cli.BoolFlag{
 		Name:  "encrypt",
+		Value: true,
 		Usage: "encrypt secrets",
 	}
 
@@ -47,13 +49,8 @@ var (
 	}
 
 	AddrFlag = cli.StringFlag{
-		Name:   "addr",
-		Usage:  "secrets service address",
-		EnvVar: "SECRETS_ADDR",
+		Name:    "addr",
+		Usage:   "secrets service address",
+		EnvVars: []string{"SECRETS_ADDR"},
 	}
 )
-
-func flag(name string) string {
-	s := strings.Split(name, ",")
-	return strings.TrimSpace(s[0])
-}

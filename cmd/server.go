@@ -18,78 +18,76 @@ import (
 
 	bolt "github.com/coreos/bbolt"
 	"github.com/go-redis/redis"
-	"github.com/urfave/cli"
+	"github.com/pkg/errors"
+	"gopkg.in/urfave/cli.v2"
 )
 
 //	server flags
 var (
 	StdListenPortFlag = cli.StringFlag{
-		Name:   "p, port",
-		Value:  "8080",
-		Usage:  "HTTP port to listen on",
-		EnvVar: "SECRETS_HTTP_PORT",
+		Name:    "p, port",
+		Value:   "8080",
+		Usage:   "HTTP port to listen on",
+		EnvVars: []string{"SECRETS_HTTP_PORT"},
 	}
 
 	TlsListenPortFlag = cli.StringFlag{
-		Name:   "tls-port",
-		Value:  "8443",
-		Usage:  "HTTPS port to listen on",
-		EnvVar: "SECRETS_HTTPS_PORT",
+		Name:    "tls-port",
+		Value:   "8443",
+		Usage:   "HTTPS port to listen on",
+		EnvVars: []string{"SECRETS_HTTPS_PORT"},
 	}
 
 	TlsCertFlag = cli.StringFlag{
-		Name:   "tls-cert",
-		Usage:  "TLS certificate file for HTTPS",
-		EnvVar: "SECRETS_TLS_CERT",
+		Name:    "tls-cert",
+		Usage:   "TLS certificate file for HTTPS",
+		EnvVars: []string{"SECRETS_TLS_CERT"},
 	}
 
 	TlsKeyFlag = cli.StringFlag{
-		Name:   "tls-key",
-		Usage:  "TLS key file for HTTPS",
-		EnvVar: "SECRETS_TLS_KEY",
+		Name:    "tls-key",
+		Usage:   "TLS key file for HTTPS",
+		EnvVars: []string{"SECRETS_TLS_KEY"},
 	}
 
 	DatastoreTypeFlag = cli.StringFlag{
-		Name:   "dst, datastore-type",
-		Value:  backend.File,
-		Usage:  "backend type to be used for storage",
-		EnvVar: "SECRETS_DS_TYPE",
+		Name:    "dst, datastore-type",
+		Value:   backend.File,
+		Usage:   "backend type to be used for storage",
+		EnvVars: []string{"SECRETS_DS_TYPE"},
 	}
 
 	DatastoreFileFlag = cli.StringFlag{
-		Name:   "dsf, datastore-file",
-		Value:  "/var/lib/secrets/secrets.db",
-		Usage:  "name / location of file for storing secrets",
-		EnvVar: "SECRETS_DS_FILE",
+		Name:    "dsf, datastore-file",
+		Value:   "/var/lib/secrets/secrets.db",
+		Usage:   "name / location of file for storing secrets",
+		EnvVars: []string{"SECRETS_DS_FILE"},
 	}
 
 	DatastoreAddrFlag = cli.StringFlag{
-		Name:   "dsa, datastore-addr",
-		Value:  "localhost:6379",
-		Usage:  "address for the remote datastore",
-		EnvVar: "SECRETS_DS_ADDR",
+		Name:    "dsa, datastore-addr",
+		Value:   "localhost:6379",
+		Usage:   "address for the remote datastore",
+		EnvVars: []string{"SECRETS_DS_ADDR"},
 	}
 )
 
-func Serve(context *cli.Context) {
-	context.Command.VisibleFlags()
-
+func Serve(context *cli.Context) error {
 	var (
 		ds  backend.Datastore
 		err error
 	)
 
-	dst := context.String(flag(DatastoreTypeFlag.Name))
+	dst := context.String(DatastoreTypeFlag.Names()[0])
 
 	switch dst {
 	case backend.Redis:
-		opts := &redis.Options{Addr: context.String(flag(DatastoreAddrFlag.Name))}
+		opts := &redis.Options{Addr: context.String(DatastoreAddrFlag.Names()[0])}
 
 		//	check if running in PCF pull the vcap services if available
 		services, err := vcap.GetServices()
 		if err != nil {
-			log.Error(err, "unable to retrieve vcap services")
-			return
+			return cli.Exit(errors.Wrap(err, "unable to retrieve vcap services"), 1)
 		}
 
 		if services != nil {
@@ -103,22 +101,19 @@ func Serve(context *cli.Context) {
 		}
 
 		if ds, err = redisds.Open(opts); err != nil {
-			log.Error(err, "unable to open connection to datastore")
-			return
+			return cli.Exit(errors.Wrap(err, "unable to open connection to datastore"), 1)
 		}
 
 	case backend.File:
 
 		//	TODO ... include / handle additional bolt options (e.g. timeout, etc)
-		fname := context.String(flag(DatastoreFileFlag.Name))
+		fname := context.String(DatastoreFileFlag.Names()[0])
 		if ds, err = fileds.Open(fname, bolt.DefaultOptions); err != nil {
-			log.Error(err, "unable to open connection to datastore")
-			return
+			return cli.Exit(errors.Wrap(err, "unable to open connection to datastore"), 1)
 		}
 
 	default:
-		log.Errorf("%s is not a supported datastore type", dst)
-		return
+		return cli.Exit(errors.Errorf("%s is not a supported datastore type", dst), 1)
 	}
 
 	defer ds.Close()
@@ -131,7 +126,7 @@ func Serve(context *cli.Context) {
 
 	//	start HTTPS listener in a seperate go routine since it is a blocking func
 	go func() {
-		cert, key := context.String(flag(TlsCertFlag.Name)), context.String(flag(TlsKeyFlag.Name))
+		cert, key := context.String(TlsCertFlag.Names()[0]), context.String(TlsKeyFlag.Names()[0])
 		if len(cert) < 1 || len(key) < 1 {
 			return
 		}
@@ -146,7 +141,7 @@ func Serve(context *cli.Context) {
 			return
 		}
 
-		addr := fmt.Sprintf(":%s", context.String(flag(TlsListenPortFlag.Name)))
+		addr := fmt.Sprintf(":%s", context.String(TlsListenPortFlag.Names()[0]))
 
 		log.Debug("starting HTTPS listener")
 		log.Fatal(http.ListenAndServeTLS(addr, cert, key, mux))
@@ -154,6 +149,8 @@ func Serve(context *cli.Context) {
 
 	log.Debug("starting HTTP listener")
 
-	addr := fmt.Sprintf(":%s", context.String(flag(StdListenPortFlag.Name)))
+	addr := fmt.Sprintf(":%s", context.String(StdListenPortFlag.Names()[0]))
 	log.Fatal(http.ListenAndServe(addr, mux))
+
+	return nil
 }

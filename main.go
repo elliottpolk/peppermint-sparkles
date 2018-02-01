@@ -9,69 +9,67 @@ import (
 
 	"git.platform.manulife.io/oa-montreal/secrets/cmd"
 
-	"github.com/urfave/cli"
+	"gopkg.in/urfave/cli.v2"
 )
 
 var version string
 
 func main() {
-	app := cli.NewApp()
-
-	app.Usage = "TODO..."
-	app.Version = version
-
-	app.Commands = []cli.Command{
-		{
-			Name:    "get",
-			Aliases: []string{"ls", "list"},
-			Flags: []cli.Flag{
-				cmd.AddrFlag,
-				cmd.AppNameFlag,
-				cmd.AppEnvFlag,
-				cmd.DecryptFlag,
-				cmd.TokenFlag,
+	app := cli.App{
+		Usage:   "TODO...",
+		Version: version,
+		Commands: []*cli.Command{
+			&cli.Command{
+				Name:    "get",
+				Aliases: []string{"ls", "list"},
+				Flags: []cli.Flag{
+					&cmd.AddrFlag,
+					&cmd.AppNameFlag,
+					&cmd.AppEnvFlag,
+					&cmd.DecryptFlag,
+					&cmd.TokenFlag,
+				},
+				Usage:  "retrieves all or specific secrets",
+				Action: cmd.Get,
 			},
-			Usage:  "retrieves all or specific secrets",
-			Action: cmd.Get,
-		},
-		{
-			Name:    "set",
-			Aliases: []string{"add", "create", "new", "update"},
-			Flags: []cli.Flag{
-				cmd.AddrFlag,
-				cmd.AppNameFlag,
-				cmd.AppEnvFlag,
-				cmd.SecretFlag,
-				cmd.EncryptFlag,
-				cmd.TokenFlag,
+			&cli.Command{
+				Name:    "set",
+				Aliases: []string{"add", "create", "new", "update"},
+				Flags: []cli.Flag{
+					&cmd.AddrFlag,
+					&cmd.SecretFlag,
+					&cmd.SecretFileFlag,
+					&cmd.EncryptFlag,
+					&cmd.TokenFlag,
+				},
+				Usage:  "adds or updates a secret",
+				Action: cmd.Set,
 			},
-			Usage:  "adds or updates a secret",
-			Action: cmd.Set,
-		},
-		{
-			Name:    "delete",
-			Aliases: []string{"del", "rm"},
-			Flags: []cli.Flag{
-				cmd.AddrFlag,
-				cmd.SecretIdFlag,
+			&cli.Command{
+				Name:    "delete",
+				Aliases: []string{"del", "rm"},
+				Flags: []cli.Flag{
+					&cmd.AddrFlag,
+					&cmd.SecretIdFlag,
+				},
+				Usage:  "deletes the secret for the provided app name and optional environment",
+				Action: cmd.Remove,
 			},
-			Usage:  "deletes the secret for the provided app name and optional environment",
-			Action: cmd.Remove,
-		},
-		{
-			Name:    "server",
-			Aliases: []string{"serve"},
-			Flags: []cli.Flag{
-				cmd.StdListenPortFlag,
-				cmd.TlsListenPortFlag,
-				cmd.TlsCertFlag,
-				cmd.TlsKeyFlag,
-				cmd.DatastoreAddrFlag,
-				cmd.DatastoreFileFlag,
-				cmd.DatastoreTypeFlag,
+			&cli.Command{
+				Name:    "server",
+				Aliases: []string{"serve"},
+				Flags: []cli.Flag{
+					&cmd.StdListenPortFlag,
+					&cmd.TlsListenPortFlag,
+					&cmd.TlsCertFlag,
+					&cmd.TlsKeyFlag,
+					&cmd.DatastoreAddrFlag,
+					&cmd.DatastoreFileFlag,
+					&cmd.DatastoreTypeFlag,
+				},
+				Usage:  "start server",
+				Action: cmd.Serve,
 			},
-			Usage:  "start server",
-			Action: cmd.Serve,
 		},
 	}
 

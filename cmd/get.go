@@ -13,55 +13,48 @@ import (
 	"git.platform.manulife.io/oa-montreal/secrets/secret"
 	"git.platform.manulife.io/oa-montreal/secrets/service"
 
-	"github.com/urfave/cli"
+	"github.com/pkg/errors"
+	"gopkg.in/urfave/cli.v2"
 )
 
-func Get(context *cli.Context) {
-	context.Command.VisibleFlags()
-
-	addr := context.String(flag(AddrFlag.Name))
+func Get(context *cli.Context) error {
+	addr := context.String(AddrFlag.Names()[0])
 	if len(addr) < 1 {
-		if err := cli.ShowCommandHelp(context, context.Command.FullName()); err != nil {
-			log.Error(err, "unable to display help")
-		}
-		return
+		cli.ShowCommandHelpAndExit(context, context.Command.FullName(), 1)
+		return nil
 	}
 
-	app := context.String(flag(AppNameFlag.Name))
+	app := context.String(AppNameFlag.Names()[0])
 	if len(app) < 1 {
-		log.NewError("a valid app name must be provided")
-		return
+		return cli.Exit(errors.New("a valid app name must be provided"), 1)
 	}
 
-	token := context.String(flag(TokenFlag.Name))
-	decrypt := context.Bool(flag(DecryptFlag.Name))
+	token := context.String(TokenFlag.Names()[0])
+	decrypt := context.Bool(DecryptFlag.Names()[0])
 
 	if decrypt && len(token) < 1 {
-		log.NewError("decrypt token must be specified in order to decrypt")
-		return
+		return cli.Exit(errors.New("decrypt token must be specified in order to decrypt"), 1)
 	}
 
 	params := &url.Values{service.AppParam: []string{app}}
-	if env := context.String(flag(AppEnvFlag.Name)); len(env) > 0 {
+	if env := context.String(AppEnvFlag.Names()[0]); len(env) > 0 {
 		params.Add(service.EnvParam, env)
 	}
 
 	raw, err := retrieve(asURL(addr, service.PathSecrets, params.Encode()))
 	if err != nil && err.Error() != "no valid secret" {
-		log.Error(err, "unable to retrieve secret")
-		return
+		return cli.Exit(errors.Wrap(err, "unable to retrieve secret"), 1)
 	}
 
 	if len(raw) < 1 {
-		return
+		return nil
 	}
 
 	//  test / validate if stored content meets the secrets model and also
 	//  to allow for decryption
 	secrets := make([]*secret.Secret, 0)
 	if err := json.Unmarshal([]byte(raw), &secrets); err != nil {
-		log.Error(err, "unable to convert string to secrets")
-		return
+		return cli.Exit(errors.Wrap(err, "unable to convert string to secrets"), 1)
 	}
 
 	for _, s := range secrets {
@@ -77,4 +70,5 @@ func Get(context *cli.Context) {
 
 		log.Infof("\n%s\n", s.MustString())
 	}
+	return nil
 }

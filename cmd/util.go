@@ -5,16 +5,27 @@
 package cmd
 
 import (
+	"bufio"
+	"io"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
 )
 
-var schemeExp = regexp.MustCompile(`^(?P<scheme>http(s)?):\/\/`)
+var (
+	schemeExp = regexp.MustCompile(`^(?P<scheme>http(s)?):\/\/`)
+
+	ErrNoPipe       = errors.New("no piped input")
+	ErrDataTooLarge = errors.New("data to large")
+
+	MaxData = (int(math.Pow10(7)) * 3)
+)
 
 func asURL(addr, path, params string) string {
 	scheme := "https"
@@ -102,4 +113,30 @@ func del(from string) (string, error) {
 	}
 
 	return string(b), nil
+}
+
+func pipe() (string, error) {
+	fi, err := os.Stdin.Stat()
+	if err != nil {
+		return "", errors.Wrap(err, "unable to stat stdin")
+	}
+
+	if fi.Mode()&os.ModeCharDevice != 0 || fi.Size() < 1 {
+		return "", ErrNoPipe
+	}
+
+	buf, res := bufio.NewReader(os.Stdin), make([]byte, 0)
+	for {
+		in, _, err := buf.ReadLine()
+		if err != nil && err == io.EOF {
+			break
+		}
+		res = append(res, in...)
+
+		if len(res) > MaxData {
+			return "", ErrDataTooLarge
+		}
+	}
+
+	return string(res), nil
 }
