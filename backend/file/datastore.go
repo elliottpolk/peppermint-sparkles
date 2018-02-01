@@ -1,11 +1,11 @@
 // Created by Elliott Polk on 23/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/campx/backend/file/datastore.go
+// oa-montreal/secrets/backend/file/datastore.go
 //
 package file
 
 import (
-	"git.platform.manulife.io/oa-montreal/campx/backend"
+	"git.platform.manulife.io/oa-montreal/secrets/backend"
 
 	bolt "github.com/coreos/bbolt"
 	"github.com/pkg/errors"

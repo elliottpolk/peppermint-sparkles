@@ -1,6 +1,6 @@
 // Created by Elliott Polk on 23/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/campx/service/api.go
+// oa-montreal/secrets/service/api.go
 //
 package service
 
@@ -13,9 +13,9 @@ import (
 
 	"git.platform.manulife.io/go-common/log"
 	"git.platform.manulife.io/go-common/respond"
-	"git.platform.manulife.io/oa-montreal/campx/backend"
-	"git.platform.manulife.io/oa-montreal/campx/middleware"
-	"git.platform.manulife.io/oa-montreal/campx/secret"
+	"git.platform.manulife.io/oa-montreal/secrets/backend"
+	"git.platform.manulife.io/oa-montreal/secrets/middleware"
+	"git.platform.manulife.io/oa-montreal/secrets/secret"
 
 	"github.com/pkg/errors"
 )

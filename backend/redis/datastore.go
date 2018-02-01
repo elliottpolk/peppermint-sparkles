@@ -1,12 +1,12 @@
 // Created by Elliott Polk on 23/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/campx/backend/redis/datastore.go
+// oa-montreal/secrets/backend/redis/datastore.go
 //
 package redis
 
 import (
 	"git.platform.manulife.io/go-common/log"
-	"git.platform.manulife.io/oa-montreal/campx/backend"
+	"git.platform.manulife.io/oa-montreal/secrets/backend"
 
 	"github.com/go-redis/redis"
 	"github.com/pkg/errors"

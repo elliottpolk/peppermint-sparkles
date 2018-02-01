@@ -1,13 +1,13 @@
 // Created by Elliott Polk on 31/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/campx/crypto/decrypt.go
+// oa-montreal/secrets/crypto/decrypt.go
 //
 package crypto
 
 import (
 	"encoding/base64"
 
-	"git.platform.manulife.io/oa-montreal/campx/uuid"
+	"git.platform.manulife.io/oa-montreal/secrets/uuid"
 
 	"github.com/pkg/errors"
 )

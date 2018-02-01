@@ -1,6 +1,6 @@
 // Created by Elliott Polk on 23/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/campx/crypto/pgp/pgp_test.go
+// oa-montreal/secrets/crypto/pgp/pgp_test.go
 //
 package pgp
 

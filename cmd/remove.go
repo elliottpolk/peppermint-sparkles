@@ -1,6 +1,6 @@
 // Created by Elliott Polk on 23/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/campx/main.go
+// oa-montreal/secrets/main.go
 //
 package cmd
 
@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"git.platform.manulife.io/go-common/log"
-	"git.platform.manulife.io/oa-montreal/campx/service"
+	"git.platform.manulife.io/oa-montreal/secrets/service"
 
 	"github.com/urfave/cli"
 )

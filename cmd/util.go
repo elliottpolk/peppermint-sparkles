@@ -1,6 +1,6 @@
 // Created by Elliott Polk on 01/02/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/campx/cmd/util.go
+// oa-montreal/secrets/cmd/util.go
 //
 package cmd
 

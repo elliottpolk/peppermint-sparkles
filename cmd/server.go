@@ -1,6 +1,6 @@
 // Created by Elliott Polk on 23/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/campx/cmd/server.go
+// oa-montreal/secrets/cmd/server.go
 //
 package cmd
 
@@ -11,10 +11,10 @@ import (
 
 	"git.platform.manulife.io/go-common/log"
 	"git.platform.manulife.io/go-common/pcf/vcap"
-	"git.platform.manulife.io/oa-montreal/campx/backend"
-	fileds "git.platform.manulife.io/oa-montreal/campx/backend/file"
-	redisds "git.platform.manulife.io/oa-montreal/campx/backend/redis"
-	"git.platform.manulife.io/oa-montreal/campx/service"
+	"git.platform.manulife.io/oa-montreal/secrets/backend"
+	fileds "git.platform.manulife.io/oa-montreal/secrets/backend/file"
+	redisds "git.platform.manulife.io/oa-montreal/secrets/backend/redis"
+	"git.platform.manulife.io/oa-montreal/secrets/service"
 
 	bolt "github.com/coreos/bbolt"
 	"github.com/go-redis/redis"
@@ -58,7 +58,7 @@ var (
 
 	DatastoreFileFlag = cli.StringFlag{
 		Name:   "dsf, datastore-file",
-		Value:  "/var/lib/confgr/campx.db",
+		Value:  "/var/lib/secrets/secrets.db",
 		Usage:  "name / location of file for storing secrets",
 		EnvVar: "CAMPX_DS_FILE",
 	}
@@ -96,8 +96,8 @@ func Serve(context *cli.Context) {
 			if i := services.Tagged(dst); i != nil {
 				creds := i.Credentials
 				opts = &redis.Options{
-					Addr:     fmt.Sprintf("%s:%s", creds.Get("host"), creds.Get("port")),
-					Password: creds.Get("password"),
+					Addr:     fmt.Sprintf("%s:%d", creds["host"].(string), int(creds["port"].(float64))),
+					Password: creds["password"].(string),
 				}
 			}
 		}

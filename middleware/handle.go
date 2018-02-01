@@ -1,6 +1,6 @@
 // Created by Elliott Polk on 25/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/campx/middleware/handle.go
+// oa-montreal/secrets/middleware/handle.go
 //
 package middleware
 

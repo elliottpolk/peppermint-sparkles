@@ -1,6 +1,6 @@
 // Created by Elliott Polk on 23/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/campx/cmd/flag.go
+// oa-montreal/secrets/cmd/flag.go
 //
 package cmd
 
@@ -48,7 +48,7 @@ var (
 
 	AddrFlag = cli.StringFlag{
 		Name:   "addr",
-		Usage:  "campx service address",
+		Usage:  "secrets service address",
 		EnvVar: "CAMPX_ADDR",
 	}
 )
