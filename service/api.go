@@ -43,11 +43,19 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//	pre-checks for paths without a valid ID
 	if !matched {
-		if r.Method == http.MethodPut ||
-			r.Method == http.MethodDelete {
+		switch r.Method {
+		case http.MethodPut, http.MethodDelete:
 			respond.WithMethodNotAllowed(w)
 			return
+		case http.MethodGet:
+			//	if the ID nor app name is not provided, there is really no way to
+			//	retrieve a secret
+			if app := r.URL.Query().Get(AppParam); len(app) < 1 {
+				respond.WithErrorMessage(w, http.StatusBadRequest, "a valid app must be specified")
+				return
+			}
 		}
 	}
 
@@ -55,51 +63,46 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		//	if the id does not exist in the URI, check the params
-		if !matched {
+		for !matched && len(id) < 1 {
 			params := r.URL.Query()
 
-			//	ensure an app name was specified
 			app := params.Get(AppParam)
-			if len(app) < 1 {
-				respond.WithErrorMessage(w, http.StatusBadRequest, "a valid app must be specified")
-				return
-			}
-
 			//	if an environment was provided, convert app + env value to a backend
 			//	key and attempt to retrieve
 			if env := params.Get(EnvParam); len(env) > 0 {
 				id = backend.Key(app, env)
-			} else {
-				//	no environment value was provided, so list out all apps and attempt
-				//	to only get the secrets for the provided app name
-				res, err := ds.List()
-				if err != nil {
-					log.Error(err, "unable to list out current values from datastore")
-					respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to retrieve secrets")
-					return
-				}
+				break
+			}
 
-				secrets := make([]*secret.Secret, 0)
-				for _, r := range res {
-					for _, v := range r {
-						s := &secret.Secret{}
-						if err := json.Unmarshal([]byte(v), &s); err != nil {
-							//	this is likely a larger issue, so make no assumptions and bail
-							log.Error(err, "unable to unmarshal secret")
-							respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to retrieve secrets")
-							return
-						}
-
-						if s.App == app {
-							secrets = append(secrets, s)
-						}
-					}
-				}
-
-				respond.WithJson(w, secrets)
+			//	no environment value was provided, so list out all apps and attempt
+			//	to filter out the secrets for the provided app name
+			res, err := ds.List()
+			if err != nil {
+				log.Error(err, "unable to list out current values from datastore")
+				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to retrieve secrets")
 				return
 			}
+
+			secrets := make([]*secret.Secret, 0)
+			for _, r := range res {
+				for _, v := range r {
+					s, err := secret.NewSecret(v)
+					if err != nil {
+						//	this is likely a larger issue, so make no assumptions and bail
+						log.Error(err, "unable to parse raw string to secret")
+						respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to retrieve secrets")
+						return
+					}
+
+					if s.App == app {
+						secrets = append(secrets, s)
+					}
+				}
+			}
+
+			//	return turn filtered results
+			respond.WithJson(w, secrets)
+			return
 		}
 
 		raw := ds.Get(id)
@@ -115,11 +118,15 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		//	this means that the URL had the ID in place and only 1 secret should
+		//	returned
 		if matched {
 			respond.WithJson(w, s)
 			return
 		}
 
+		//	this means that the URL did not have the ID in place and there is
+		//	the likelyhood that more than 1 can be returned in other code
 		respond.WithJson(w, []*secret.Secret{s})
 		return
 
