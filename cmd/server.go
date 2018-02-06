@@ -25,7 +25,8 @@ import (
 //	server flags
 var (
 	StdListenPortFlag = cli.StringFlag{
-		Name:    "p, port",
+		Name:    "port",
+		Aliases: []string{"p"},
 		Value:   "8080",
 		Usage:   "HTTP port to listen on",
 		EnvVars: []string{"SECRETS_HTTP_PORT"},
@@ -51,21 +52,24 @@ var (
 	}
 
 	DatastoreTypeFlag = cli.StringFlag{
-		Name:    "dst, datastore-type",
+		Name:    "datastore-type",
+		Aliases: []string{"dst"},
 		Value:   backend.File,
 		Usage:   "backend type to be used for storage",
 		EnvVars: []string{"SECRETS_DS_TYPE"},
 	}
 
 	DatastoreFileFlag = cli.StringFlag{
-		Name:    "dsf, datastore-file",
+		Name:    "datastore-file",
+		Aliases: []string{"dsf"},
 		Value:   "/var/lib/secrets/secrets.db",
 		Usage:   "name / location of file for storing secrets",
 		EnvVars: []string{"SECRETS_DS_FILE"},
 	}
 
 	DatastoreAddrFlag = cli.StringFlag{
-		Name:    "dsa, datastore-addr",
+		Name:    "datastore-addr",
+		Aliases: []string{"dsa"},
 		Value:   "localhost:6379",
 		Usage:   "address for the remote datastore",
 		EnvVars: []string{"SECRETS_DS_ADDR"},

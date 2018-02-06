@@ -8,28 +8,33 @@ import "gopkg.in/urfave/cli.v2"
 
 var (
 	AppNameFlag = cli.StringFlag{
-		Name:  "a, app, app-name",
-		Usage: "app name of secret",
+		Name:    "app-name",
+		Aliases: []string{"a", "app"},
+		Usage:   "app name of secret",
 	}
 
 	AppEnvFlag = cli.StringFlag{
-		Name:  "e, env, app-env",
-		Usage: "environment of secret (e.g. PROD, DEV, TEST, etc.)",
+		Name:    "app-env",
+		Aliases: []string{"e", "env"},
+		Usage:   "environment of secret (e.g. PROD, DEV, TEST, etc.)",
 	}
 
 	SecretIdFlag = cli.StringFlag{
-		Name:  "id, secret-id",
-		Usage: "generated ID of secret",
+		Name:    "secret-id",
+		Aliases: []string{"id", "sid"},
+		Usage:   "generated ID of secret",
 	}
 
 	SecretFlag = cli.StringFlag{
-		Name:  "s, secret",
-		Usage: "secret to be stored",
+		Name:    "secret",
+		Aliases: []string{"s"},
+		Usage:   "secret to be stored",
 	}
 
 	SecretFileFlag = cli.StringFlag{
-		Name:  "f, secret-file",
-		Usage: "filepath to secret",
+		Name:    "secret-file",
+		Aliases: []string{"f"},
+		Usage:   "filepath to secret",
 	}
 
 	EncryptFlag = cli.BoolFlag{
@@ -44,8 +49,9 @@ var (
 	}
 
 	TokenFlag = cli.StringFlag{
-		Name:  "t, token",
-		Usage: "token used to encrypt / decrypt secrets",
+		Name:    "token",
+		Aliases: []string{"t", "tok"},
+		Usage:   "token used to encrypt / decrypt secrets",
 	}
 
 	AddrFlag = cli.StringFlag{
