@@ -5,4 +5,4 @@ routes:
 - route: peppermint-sparkles-dev.apps.cac.preview.pcf.manulife.com
 
 services:
-- redis
+- rainbow-dash-redis
