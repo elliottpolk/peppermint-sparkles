@@ -1,6 +1,6 @@
 // Created by Elliott Polk on 23/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/secrets/cmd/server.go
+// oa-montreal/peppermint-sparkles/cmd/server.go
 //
 package cmd
 
@@ -11,10 +11,10 @@ import (
 
 	"git.platform.manulife.io/go-common/log"
 	"git.platform.manulife.io/go-common/pcf/vcap"
-	"git.platform.manulife.io/oa-montreal/secrets/backend"
-	fileds "git.platform.manulife.io/oa-montreal/secrets/backend/file"
-	redisds "git.platform.manulife.io/oa-montreal/secrets/backend/redis"
-	"git.platform.manulife.io/oa-montreal/secrets/service"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend"
+	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
+	redisds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/redis"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
 
 	bolt "github.com/coreos/bbolt"
 	"github.com/go-redis/redis"

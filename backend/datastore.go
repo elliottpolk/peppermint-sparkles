@@ -1,6 +1,6 @@
 // Created by Elliott Polk on 23/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/secrets/backend/datastore.go
+// oa-montreal/peppermint-sparkles/backend/datastore.go
 //
 package backend
 

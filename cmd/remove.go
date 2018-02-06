@@ -1,13 +1,13 @@
 // Created by Elliott Polk on 23/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/secrets/main.go
+// oa-montreal/peppermint-sparkles/main.go
 //
 package cmd
 
 import (
 	"fmt"
 
-	"git.platform.manulife.io/oa-montreal/secrets/service"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
 
 	"github.com/pkg/errors"
 	"gopkg.in/urfave/cli.v2"
