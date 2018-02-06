@@ -29,26 +29,26 @@ var (
 		Aliases: []string{"p"},
 		Value:   "8080",
 		Usage:   "HTTP port to listen on",
-		EnvVars: []string{"SECRETS_HTTP_PORT"},
+		EnvVars: []string{"PSPARKLES_HTTP_PORT"},
 	}
 
 	TlsListenPortFlag = cli.StringFlag{
 		Name:    "tls-port",
 		Value:   "8443",
 		Usage:   "HTTPS port to listen on",
-		EnvVars: []string{"SECRETS_HTTPS_PORT"},
+		EnvVars: []string{"PSPARKLES_HTTPS_PORT"},
 	}
 
 	TlsCertFlag = cli.StringFlag{
 		Name:    "tls-cert",
 		Usage:   "TLS certificate file for HTTPS",
-		EnvVars: []string{"SECRETS_TLS_CERT"},
+		EnvVars: []string{"PSPARKLES_TLS_CERT"},
 	}
 
 	TlsKeyFlag = cli.StringFlag{
 		Name:    "tls-key",
 		Usage:   "TLS key file for HTTPS",
-		EnvVars: []string{"SECRETS_TLS_KEY"},
+		EnvVars: []string{"PSPARKLES_TLS_KEY"},
 	}
 
 	DatastoreTypeFlag = cli.StringFlag{
@@ -56,15 +56,15 @@ var (
 		Aliases: []string{"dst"},
 		Value:   backend.File,
 		Usage:   "backend type to be used for storage",
-		EnvVars: []string{"SECRETS_DS_TYPE"},
+		EnvVars: []string{"PSPARKLES_DS_TYPE"},
 	}
 
 	DatastoreFileFlag = cli.StringFlag{
 		Name:    "datastore-file",
 		Aliases: []string{"dsf"},
-		Value:   "/var/lib/secrets/secrets.db",
+		Value:   "/var/lib/peppermint-sparkles/psparkles.db",
 		Usage:   "name / location of file for storing secrets",
-		EnvVars: []string{"SECRETS_DS_FILE"},
+		EnvVars: []string{"PSPARKLES_DS_FILE"},
 	}
 
 	DatastoreAddrFlag = cli.StringFlag{
@@ -72,7 +72,7 @@ var (
 		Aliases: []string{"dsa"},
 		Value:   "localhost:6379",
 		Usage:   "address for the remote datastore",
-		EnvVars: []string{"SECRETS_DS_ADDR"},
+		EnvVars: []string{"PSPARKLES_DS_ADDR"},
 	}
 )
 

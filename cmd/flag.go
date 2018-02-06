@@ -57,6 +57,6 @@ var (
 	AddrFlag = cli.StringFlag{
 		Name:    "addr",
 		Usage:   "secrets service address",
-		EnvVars: []string{"SECRETS_ADDR"},
+		EnvVars: []string{"PSPARKLES_ADDR"},
 	}
 )

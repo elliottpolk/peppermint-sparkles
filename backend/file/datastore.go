@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const bucket string = "secrets"
+const bucket string = "mints"
 
 type Datastore struct {
 	db *bolt.DB

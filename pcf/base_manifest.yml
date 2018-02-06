@@ -3,6 +3,6 @@
 applications:
 - name: peppermint-sparkles
   buildpack: binary_buildpack
-  command: tar jxf peppermint-sparkles*.tar.bz2 && ./peppermint-sparkles -v && ./peppermint-sparkles serve -dst redis
+  command: tar jxf peppermint-sparkles*.tar.bz2 && ./psparkles -v && ./psparkles serve -dst redis
   path: ../build/bin/
   memory: 512M

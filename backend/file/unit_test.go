@@ -16,7 +16,7 @@ import (
 )
 
 func TestOpen(t *testing.T) {
-	what := fmt.Sprintf("secrets_testing_%d.db", time.Now().UnixNano())
+	what := fmt.Sprintf("psparkles_testing_%d.db", time.Now().UnixNano())
 	ds, err := Open(what, &bolt.Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -35,7 +35,7 @@ func TestOpen(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	what := fmt.Sprintf("secrets_testing_%d.db", time.Now().UnixNano())
+	what := fmt.Sprintf("psparkles_testing_%d.db", time.Now().UnixNano())
 	ds, err := Open(what, &bolt.Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -58,7 +58,7 @@ func TestClose(t *testing.T) {
 }
 
 func TestKeys(t *testing.T) {
-	what := fmt.Sprintf("secrets_testing_%d.db", time.Now().UnixNano())
+	what := fmt.Sprintf("psparkles_testing_%d.db", time.Now().UnixNano())
 	ds, err := Open(what, &bolt.Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -105,7 +105,7 @@ func TestKeys(t *testing.T) {
 }
 
 func TestSetGet(t *testing.T) {
-	what := fmt.Sprintf("secrets_testing_%d.db", time.Now().UnixNano())
+	what := fmt.Sprintf("psparkles_testing_%d.db", time.Now().UnixNano())
 	ds, err := Open(what, &bolt.Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -145,7 +145,7 @@ func TestSetGet(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
-	what := fmt.Sprintf("secrets_testing_%d.db", time.Now().UnixNano())
+	what := fmt.Sprintf("psparkles_testing_%d.db", time.Now().UnixNano())
 	ds, err := Open(what, &bolt.Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -173,7 +173,7 @@ func TestRemove(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	what := fmt.Sprintf("secrets_testing_%d.db", time.Now().UnixNano())
+	what := fmt.Sprintf("psparkles_testing_%d.db", time.Now().UnixNano())
 	ds, err := Open(what, &bolt.Options{})
 	if err != nil {
 		t.Fatal(err)
