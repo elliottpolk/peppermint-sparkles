@@ -20,7 +20,7 @@ resources:
   source:
     endpoint: {{ARTIFACTORY_URI}}
     repository: {{ARTIFACTORY_REPO}}
-    regex: "secrets-v(?<version>[0-9].[0-9].[0-9]).tar.bz2"
+    regex: "peppermint-sparkles-v(?<version>[0-9].[0-9].[0-9]).tar.bz2"
     username: {{ARTIFACTORY_USER}}
     password: {{ARTIFACTORY_PASS}}
     skip_ssl_verification: true
@@ -67,43 +67,43 @@ jobs:
 # DEV environment
 - name: unit-test-dev
   plan:
-  - get: secrets
+  - get: peppermint-sparkles
     resource: git-source-dev
     trigger: true
   - task: unit
-    file: secrets/ci/tasks/unit_test.yml
+    file: peppermint-sparkles/ci/tasks/unit_test.yml
 
 - name: deploy-dev
   serial: true
   plan:
-  - get: secrets
+  - get: peppermint-sparkles
     resource: git-source-dev 
     trigger: true
     passed: [unit-test-dev]
-  - get: secrets/build/bin
+  - get: peppermint-sparkles/build/bin
     resource: binary-repo
   - put: pcf-dev
     params: 
-      manifest: secrets/pcf/dev_manifest.yml
+      manifest: peppermint-sparkles/pcf/dev_manifest.yml
 
 # TST environment
 - name: unit-test-tst
   plan:
-  - get: secrets
+  - get: peppermint-sparkles
     resource: git-source-test
     trigger: true
   - task: unit
-    file: secrets/ci/tasks/unit_test.yml
+    file: peppermint-sparkles/ci/tasks/unit_test.yml
 
 - name: deploy-tst
   serial: true
   plan:
-  - get: secrets
+  - get: peppermint-sparkles
     resource: git-source-test
     trigger: true
     passed: [unit-test-tst]
-  - get: secrets/build/bin
+  - get: peppermint-sparkles/build/bin
     resource: binary-repo
   - put: pcf-test
     params: 
-      manifest: secrets/pcf/tst_manifest.yml
+      manifest: peppermint-sparkles/pcf/tst_manifest.yml

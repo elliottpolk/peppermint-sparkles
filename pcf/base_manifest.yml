@@ -1,8 +1,8 @@
 ---
 
 applications:
-- name: secrets
+- name: peppermint-sparkles
   buildpack: binary_buildpack
-  command: tar jxf secrets*.tar.bz2 && ./secrets -v && ./secrets serve -dst redis
+  command: tar jxf peppermint-sparkles*.tar.bz2 && ./peppermint-sparkles -v && ./peppermint-sparkles serve -dst redis
   path: ../build/bin/
   memory: 512M
