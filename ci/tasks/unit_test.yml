@@ -1,0 +1,19 @@
+platform: linux
+image_resource:
+  type: docker-image
+  source:
+    insecure_registries: ["10.234.24.211:443"]
+    repository: 10.234.24.211:443/golang
+    tag: 1.9.3
+inputs:
+- name: secrets
+  path: /src/git.platform.manulife.io/oa-montreal/secrets
+run:
+  path: sh
+  args:
+    - -exec
+    - |
+      export GOPATH=${PWD}
+      cd $GOPATH/src/git.platform.manulife.io/oa-montreal/secrets
+      go test -v -cover ./...
+      go test -v -cover -tags="integration" ./...

@@ -1,0 +1,8 @@
+---
+inherit: base_manifest.yml
+
+routes:
+- route: peppermint-sparkles-sandbox.apps.cac.preview.pcf.manulife.com
+
+services:
+- redis

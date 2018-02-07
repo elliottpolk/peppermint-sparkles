@@ -1,0 +1,109 @@
+---
+
+groups:
+- name: {{APP_NAME}}
+  jobs:
+  - unit-test-dev
+  - deploy-dev
+  - unit-test-tst
+  - deploy-tst
+
+resource_types:
+- name: artifactory
+  type: docker-image
+  source:
+    repository: pivotalservices/artifactory-resource
+
+resources:
+- name: binary-repo
+  type: artifactory
+  source:
+    endpoint: {{ARTIFACTORY_URI}}
+    repository: {{ARTIFACTORY_REPO}}
+    regex: "peppermint-sparkles-v(?<version>[0-9].[0-9].[0-9]).tar.bz2"
+    username: {{ARTIFACTORY_USER}}
+    password: {{ARTIFACTORY_PASS}}
+    skip_ssl_verification: true
+
+- name: git-source-dev
+  type: git
+  source:
+    branch: {{GIT_BRANCH}}
+    tag_filter: "*.dev"
+    uri: {{GIT_URI}}
+    private_key: {{GIT_PRIVATE_KEY}}
+    skip_ssl_verification: true
+
+- name: pcf-dev
+  type: cf
+  source:
+    api: {{PCF_DEV_API}}
+    username: {{PCF_DEV_USER}}
+    password: {{PCF_DEV_PASS}}
+    organization: GSD-CAC-DEV
+    space: OA-MONTREAL-CAC-DEV
+    skip_cert_check: true
+
+- name: git-source-test
+  type: git
+  source:
+    branch: {{GIT_BRANCH}}
+    tag_filter: "*.tst"
+    uri: {{GIT_URI}}
+    private_key: {{GIT_PRIVATE_KEY}}
+    skip_ssl_verification: true
+
+- name: pcf-test
+  type: cf
+  source:
+    api: {{PCF_DEV_API}}
+    username: {{PCF_TST_USER}}
+    password: {{PCF_TST_PASS}}
+    organization: GSD-CAC-TST
+    space: OA-MONTREAL-CAC-TST
+    skip_cert_check: true
+
+jobs:
+# DEV environment
+- name: unit-test-dev
+  plan:
+  - get: peppermint-sparkles
+    resource: git-source-dev
+    trigger: true
+  - task: unit
+    file: peppermint-sparkles/ci/tasks/unit_test.yml
+
+- name: deploy-dev
+  serial: true
+  plan:
+  - get: peppermint-sparkles
+    resource: git-source-dev 
+    trigger: true
+    passed: [unit-test-dev]
+  - get: peppermint-sparkles/build/bin
+    resource: binary-repo
+  - put: pcf-dev
+    params: 
+      manifest: peppermint-sparkles/pcf/dev_manifest.yml
+
+# TST environment
+- name: unit-test-tst
+  plan:
+  - get: peppermint-sparkles
+    resource: git-source-test
+    trigger: true
+  - task: unit
+    file: peppermint-sparkles/ci/tasks/unit_test.yml
+
+- name: deploy-tst
+  serial: true
+  plan:
+  - get: peppermint-sparkles
+    resource: git-source-test
+    trigger: true
+    passed: [unit-test-tst]
+  - get: peppermint-sparkles/build/bin
+    resource: binary-repo
+  - put: pcf-test
+    params: 
+      manifest: peppermint-sparkles/pcf/tst_manifest.yml
