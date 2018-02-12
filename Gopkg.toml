@@ -28,3 +28,18 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+    branch = "master"
+    name = "gitlab.manulife.com/go-common/log"
+    source = "ssh://git@gitlab.manulife.com:2222/go-common/log.git"
+
+[[constraint]]
+    branch = "master"
+    name = "gitlab.manulife.com/go-common/pcf"
+    source = "ssh://git@gitlab.manulife.com:2222/go-common/pcf.git"
+
+[[constraint]]
+    branch = "master"
+    name = "gitlab.manulife.com/go-common/respond"
+    source = "ssh://git@gitlab.manulife.com:2222/go-common/respond.git"

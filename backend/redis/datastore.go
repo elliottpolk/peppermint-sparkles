@@ -5,8 +5,8 @@
 package redis
 
 import (
-	"git.platform.manulife.io/go-common/log"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend"
+	"gitlab.manulife.com/go-common/log"
+	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/backend"
 
 	"github.com/go-redis/redis"
 	"github.com/pkg/errors"

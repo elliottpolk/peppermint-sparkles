@@ -7,7 +7,7 @@ package middleware
 import (
 	"net/http"
 
-	"git.platform.manulife.io/go-common/log"
+	"gitlab.manulife.com/go-common/log"
 )
 
 func Handle(pattern string, fn http.HandlerFunc) {

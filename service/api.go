@@ -11,11 +11,11 @@ import (
 	"net/http"
 	"regexp"
 
-	"git.platform.manulife.io/go-common/log"
-	"git.platform.manulife.io/go-common/respond"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/middleware"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/secret"
+	"gitlab.manulife.com/go-common/log"
+	"gitlab.manulife.com/go-common/respond"
+	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/backend"
+	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/middleware"
+	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/secret"
 
 	"github.com/pkg/errors"
 )

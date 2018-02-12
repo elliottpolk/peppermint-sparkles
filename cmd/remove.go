@@ -7,7 +7,7 @@ package cmd
 import (
 	"fmt"
 
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
+	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/service"
 
 	"github.com/pkg/errors"
 	"gopkg.in/urfave/cli.v2"

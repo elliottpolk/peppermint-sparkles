@@ -8,10 +8,10 @@ import (
 	"encoding/json"
 	"net/url"
 
-	"git.platform.manulife.io/go-common/log"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto/pgp"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/secret"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
+	"gitlab.manulife.com/go-common/log"
+	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/crypto/pgp"
+	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/secret"
+	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/service"
 
 	"github.com/pkg/errors"
 	"gopkg.in/urfave/cli.v2"
