@@ -15,6 +15,4 @@ run:
     - |
       export GOPATH=${PWD}
       cd $GOPATH/src/gitlab.manulife.com/oa-montreal/peppermint-sparkles
-      dep ensure -v && \
-      go test -v -cover ./... && \
-      go test -v -cover -tags="integration" ./...
+      go test -v -cover ./...
