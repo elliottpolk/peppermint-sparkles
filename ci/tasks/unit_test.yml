@@ -6,14 +6,14 @@ image_resource:
     repository: 10.234.24.211:443/golang
     tag: 1.9.3
 inputs:
-- name: secrets
-  path: /src/git.platform.manulife.io/oa-montreal/secrets
+- name: peppermint-sparkles
+  path: /src/git.platform.manulife.io/oa-montreal/peppermint-sparkles
 run:
   path: sh
   args:
     - -exec
     - |
       export GOPATH=${PWD}
-      cd $GOPATH/src/git.platform.manulife.io/oa-montreal/secrets
+      cd $GOPATH/src/git.platform.manulife.io/oa-montreal/peppermint-sparkles
       go test -v -cover ./...
       go test -v -cover -tags="integration" ./...
