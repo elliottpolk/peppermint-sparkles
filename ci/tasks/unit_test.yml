@@ -3,8 +3,8 @@ image_resource:
   type: docker-image
   source:
     insecure_registries: ["10.234.24.211:443"]
-    repository: 10.234.24.211:443/go-dep
-    tag: latest
+    repository: 10.234.24.211:443/golang
+    tag: 1.9.4
 inputs:
 - name: peppermint-sparkles
   path: /src/gitlab.manulife.com/oa-montreal/peppermint-sparkles
