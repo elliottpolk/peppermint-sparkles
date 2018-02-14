@@ -68,7 +68,7 @@ func main() {
 					&cmd.DatastoreFileFlag,
 					&cmd.DatastoreTypeFlag,
 				},
-				Usage:  "start server",
+				Usage:  "start the server",
 				Action: cmd.Serve,
 			},
 		},

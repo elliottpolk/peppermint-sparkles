@@ -38,7 +38,7 @@ For additional build help and ideas, review the `Honeyfile.yml`
 # client
 $ psparkles -h
 NAME:
-   psparkles - TODO...
+   psparkles - Server and client for managing super special secrets 🦄
 
 USAGE:
    psparkles [global options] command [command options] [arguments...]
@@ -47,21 +47,24 @@ VERSION:
    v2.0.0
 
 COMMANDS:
-     get, ls, list                  retrieves all or specific secrets
+     get, ls, list                  retrieves secrets
      set, add, create, new, update  adds or updates a secret
-     delete, del, rm                deletes the secret for the provided app name and optional environment
-     server, serve                  start server
+     delete, del, rm                deletes a secret
+     server, serve                  start the server
      help, h                        Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
    --help, -h     show help (default: false)
    --version, -v  print the version (default: false)
+
+COPYRIGHT:
+   Copyright © 2018 Manulife
       
 ###
 # server
 $ psparkles serve -h
 NAME:
-   psparkles server - start server
+   psparkles server - start the server
 
 USAGE:
    psparkles server [command options] [arguments...]
