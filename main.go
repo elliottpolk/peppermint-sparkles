@@ -16,8 +16,9 @@ var version string
 
 func main() {
 	app := cli.App{
-		Usage:   "TODO...",
-		Version: version,
+		Copyright: "Copyright © 2018 Manulife",
+		Usage:     "Server and client for managing super special secrets 🦄",
+		Version:   version,
 		Commands: []*cli.Command{
 			&cli.Command{
 				Name:    "get",
@@ -29,7 +30,7 @@ func main() {
 					&cmd.DecryptFlag,
 					&cmd.TokenFlag,
 				},
-				Usage:  "retrieves all or specific secrets",
+				Usage:  "retrieves secrets",
 				Action: cmd.Get,
 			},
 			&cli.Command{
@@ -52,7 +53,7 @@ func main() {
 					&cmd.AddrFlag,
 					&cmd.SecretIdFlag,
 				},
-				Usage:  "deletes the secret for the provided app name and optional environment",
+				Usage:  "deletes a secret",
 				Action: cmd.Remove,
 			},
 			&cli.Command{
