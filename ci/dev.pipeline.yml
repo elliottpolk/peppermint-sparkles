@@ -12,7 +12,8 @@ resource_types:
 - name: artifactory
   type: docker-image
   source:
-    repository: pivotalservices/artifactory-resource
+    insecure_registries: ["10.234.24.211:443"]
+    repository: 10.234.24.211:443/artifactory-resource
 
 resources:
 - name: binary-repo
