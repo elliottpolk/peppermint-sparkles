@@ -1,0 +1,21 @@
+platform: linux
+image_resource:
+  type: docker-image
+  source:
+    insecure_registries: ["10.234.24.211:443"]
+    repository: 10.234.24.211:443/cf-tools
+    tag: latest
+run:
+  path: sh
+  args:
+    - -exec
+    - |
+      set -o errexit
+      set -o xtrace
+
+      set +x
+      cf login --skip-ssl-validation -a ${CF_API} -u ${CF_USER} -p ${CF_PASSWORD} -o ${CF_ORG} -s ${CF_SPACE}
+      set -x
+
+      # redis service
+      cf create-service p-redis ${REDIS_PLAN} ${REDIS_NAME}

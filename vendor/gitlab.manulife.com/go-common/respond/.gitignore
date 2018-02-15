@@ -1,0 +1,5 @@
+.DS_Store
+.vscode
+app.conf
+node_modules
+app_*.conf
