@@ -52,23 +52,21 @@ func Get(context *cli.Context) error {
 
 	//  test / validate if stored content meets the secrets model and also
 	//  to allow for decryption
-	secrets := make([]*models.Secret, 0)
-	if err := json.Unmarshal([]byte(raw), &secrets); err != nil {
+	s := &models.Secret{}
+	if err := json.Unmarshal([]byte(raw), &s); err != nil {
 		return cli.Exit(errors.Wrap(err, "unable to convert string to secrets"), 1)
 	}
 
-	for _, s := range secrets {
-		if decrypt {
-			c := pgp.Crypter{Token: []byte(token)}
-			res, err := c.Decrypt([]byte(s.Content))
-			if err != nil {
-				log.Error(err, "unable to decrypt secret")
-				continue
-			}
-			s.Content = string(res)
+	if decrypt {
+		c := pgp.Crypter{Token: []byte(token)}
+		res, err := c.Decrypt([]byte(s.Content))
+		if err != nil {
+			return cli.Exit(errors.Wrap(err, "unable to decrypt secret"), 1)
 		}
-
-		log.Infof("\n%s\n", s.MustString())
+		s.Content = string(res)
 	}
+
+	log.Infof("\n%s\n", s.MustString())
+
 	return nil
 }
