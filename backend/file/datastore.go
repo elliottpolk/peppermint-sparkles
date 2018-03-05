@@ -5,13 +5,20 @@
 package file
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"fmt"
+
 	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/backend"
 
 	bolt "github.com/coreos/bbolt"
 	"github.com/pkg/errors"
 )
 
-const bucket string = "mints"
+const (
+	bucket     string = "mints"
+	historical string = "buttermints"
+)
 
 type Datastore struct {
 	db *bolt.DB
@@ -49,21 +56,24 @@ func (ds *Datastore) Close() error {
 	return nil
 }
 
-//  Keys iterates over the available keys and returns as a list.
-func (ds *Datastore) Keys() []string {
-	keys := make([]string, 0)
+func (ds *Datastore) keys(b string) []string {
+	vals := make([]string, 0)
 	if ds.db != nil {
 		ds.db.View(func(tx *bolt.Tx) error {
-			curs := tx.Bucket([]byte(bucket)).Cursor()
+			curs := tx.Bucket([]byte(b)).Cursor()
 			for k, _ := curs.First(); k != nil; k, _ = curs.Next() {
-				keys = append(keys, string(k))
+				vals = append(vals, string(k))
 			}
 
 			return nil
 		})
 	}
+	return vals
+}
 
-	return keys
+//  Keys iterates over the available keys and returns as a list.
+func (ds *Datastore) Keys() []string {
+	return ds.keys(bucket)
 }
 
 //  Set adds a new entry into the key/value store. If the key exists, the old
@@ -77,19 +87,22 @@ func (ds *Datastore) Set(key, value string) error {
 	})
 }
 
-//  Get retrieves the relevant content for the provided key.
-func (ds *Datastore) Get(key string) string {
+func (ds *Datastore) get(b, k string) string {
 	if ds.db == nil {
 		return ""
 	}
-
 	var val string
 	ds.db.View(func(tx *bolt.Tx) error {
-		val = string(tx.Bucket([]byte(bucket)).Get([]byte(key)))
+		val = string(tx.Bucket([]byte(b)).Get([]byte(k)))
 		return nil
 	})
 
 	return val
+}
+
+//  Get retrieves the relevant content for the provided key.
+func (ds *Datastore) Get(key string) string {
+	return ds.get(bucket, key)
 }
 
 //  Remove deletes the content for the provided key. No error is returned if the
@@ -112,6 +125,44 @@ func (ds *Datastore) List() ([]backend.Value, error) {
 	vals := make([]backend.Value, 0)
 	for _, k := range ds.Keys() {
 		vals = append(vals, backend.Value{k: ds.Get(k)})
+	}
+
+	return vals, nil
+}
+
+func (ds *Datastore) AddHistory(value string) error {
+	if ds.db == nil {
+		return ErrInvalidDatastore
+	}
+
+	buf := make([]byte, 2048)
+	if _, err := rand.Read(buf); err != nil {
+		return errors.Wrap(err, "unable to read in random data to generate key")
+	}
+
+	//	generate SHA256 token from random content to be stored + random data to
+	// 	attempt to prevent collisions
+	key := fmt.Sprintf("%x", sha256.Sum256(append([]byte(value), buf...)))
+
+	return ds.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket([]byte(historical)).Put([]byte(key), []byte(value))
+	})
+}
+
+func (ds *Datastore) historicalKeys() []string {
+	return ds.keys(historical)
+}
+
+func (ds *Datastore) Historical() ([]backend.Value, error) {
+	if ds.db == nil {
+		return nil, ErrInvalidDatastore
+	}
+
+	vals := make([]backend.Value, 0)
+	for _, k := range ds.historicalKeys() {
+		if res := ds.get(historical, historical); len(res) > 0 {
+			vals = append(vals, backend.Value{k: res})
+		}
 	}
 
 	return vals, nil

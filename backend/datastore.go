@@ -23,6 +23,8 @@ type Datastore interface {
 	Set(key, value string) error
 	Get(key string) string
 	Remove(key string) error
+	AddHistory(value string) error
+	Historical() ([]Value, error)
 }
 
 func Key(values ...string) string {
