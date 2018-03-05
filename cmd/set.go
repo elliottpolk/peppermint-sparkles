@@ -12,7 +12,7 @@ import (
 	"gitlab.manulife.com/go-common/log"
 	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/crypto"
 	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/crypto/pgp"
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/secret"
+	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/models"
 	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/service"
 
 	"github.com/pkg/errors"
@@ -71,7 +71,7 @@ func Set(context *cli.Context) error {
 		raw, tick = r, +1
 	}
 
-	s, err := secret.NewSecret(raw)
+	s, err := models.ParseSecret(raw)
 	if err != nil {
 		return cli.Exit(errors.Wrap(err, "unable to parse secret"), 1)
 	}
@@ -111,7 +111,7 @@ func Set(context *cli.Context) error {
 	}
 
 	//	convert from and back to JSON string to provide "prettier" formatting on print
-	ugly := &secret.Secret{}
+	ugly := &models.Secret{}
 	if err := json.Unmarshal([]byte(res), &ugly); err != nil {
 		log.Error(err, "unable to parse in JSON string for pretty output")
 	}

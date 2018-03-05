@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/user"
 	"regexp"
 	"strings"
 
@@ -139,4 +140,13 @@ func pipe() (string, error) {
 	}
 
 	return string(res), nil
+}
+
+func osUser() (string, error) {
+	u, err := user.Current()
+	if err != nil {
+		return "", errors.Wrap(err, "unable to retrieve current OS user")
+	}
+
+	return u.Username, nil
 }

@@ -110,7 +110,7 @@ func Serve(context *cli.Context) error {
 
 	case backend.File:
 
-		//	TODO ... include / handle additional bolt options (e.g. timeout, etc)
+		//	FIXME ... include / handle additional bolt options (e.g. timeout, etc)
 		fname := context.String(DatastoreFileFlag.Names()[0])
 		if ds, err = fileds.Open(fname, bolt.DefaultOptions); err != nil {
 			return cli.Exit(errors.Wrap(err, "unable to open connection to datastore"), 1)

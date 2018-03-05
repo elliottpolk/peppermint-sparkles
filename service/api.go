@@ -5,26 +5,28 @@
 package service
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"strings"
+	"time"
 
 	"gitlab.manulife.com/go-common/log"
 	"gitlab.manulife.com/go-common/respond"
 	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/backend"
 	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/middleware"
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/secret"
+	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/models"
 
 	"github.com/pkg/errors"
 )
 
 const (
-	PathSecrets string = "/api/v1/secrets"
+	PathSecrets string = "/api/v2/secrets"
 
-	AppParam string = "app_name"
-	EnvParam string = "env"
+	AppParam  string = "app_name"
+	EnvParam  string = "env"
+	UserParam string = "username"
 )
 
 var idExp *regexp.Regexp = regexp.MustCompile(`secrets/(?P<id>[a-zA-Z\d]+)(\/)?$`)
@@ -38,10 +40,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	matched, id, err := getId(r.URL.Path)
 	if err != nil {
-		log.Error(err, "unable to parse ")
+		log.Error(err, "unable to retrieve the secret ID from the URL path")
 		respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
 		return
 	}
+
+	ds, params := h.Backend, r.URL.Query()
 
 	//	pre-checks for paths without a valid ID
 	if !matched {
@@ -50,59 +54,25 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			respond.WithMethodNotAllowed(w)
 			return
 		case http.MethodGet:
-			//	if the ID nor app name is not provided, there is really no way to
-			//	retrieve a secret
-			if app := r.URL.Query().Get(AppParam); len(app) < 1 {
-				respond.WithErrorMessage(w, http.StatusBadRequest, "a valid app must be specified")
+			//	if the ID nor app name and environment are not provided, there
+			//	is really no way to retrieve a secret
+			if app, env := params.Get(AppParam), params.Get(EnvParam); len(app) < 1 || len(env) < 1 {
+				respond.WithErrorMessage(w, http.StatusBadRequest, "a valid %s and %s must be specified", AppParam, EnvParam)
 				return
 			}
 		}
 	}
 
-	ds := h.Backend
-
 	switch r.Method {
 	case http.MethodGet:
-		for !matched && len(id) < 1 {
-			params := r.URL.Query()
-
-			app := params.Get(AppParam)
-			//	if an environment was provided, convert app + env value to a backend
-			//	key and attempt to retrieve
-			if env := params.Get(EnvParam); len(env) > 0 {
-				id = backend.Key(app, env)
-				break
-			}
-
-			//	no environment value was provided, so list out all apps and attempt
-			//	to filter out the secrets for the provided app name
-			res, err := ds.List()
-			if err != nil {
-				log.Error(err, "unable to list out current values from datastore")
-				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to retrieve secrets")
-				return
-			}
-
-			secrets := make([]*secret.Secret, 0)
-			for _, r := range res {
-				for _, v := range r {
-					s, err := secret.NewSecret(v)
-					if err != nil {
-						//	this is likely a larger issue, so make no assumptions and bail
-						log.Error(err, "unable to parse raw string to secret")
-						respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to retrieve secrets")
-						return
-					}
-
-					if s.App == app {
-						secrets = append(secrets, s)
-					}
+		if !matched {
+			app, env := params.Get(AppParam), params.Get(EnvParam)
+			for _, k := range ds.Keys() {
+				if strings.HasSuffix(k, backend.KeySuffix(app, env)) {
+					id = k
+					break
 				}
 			}
-
-			//	return turn filtered results
-			respond.WithJson(w, secrets)
-			return
 		}
 
 		raw := ds.Get(id)
@@ -111,23 +81,20 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		s, err := secret.NewSecret(raw)
+		rec, err := models.ParseRecord(raw)
 		if err != nil {
 			log.Error(err, "unable to parse stored secret")
-			respond.WithError(w, http.StatusBadRequest, err, "invalid secret")
+			respond.WithErrorMessage(w, http.StatusBadRequest, "invalid secret")
 			return
 		}
 
-		//	this means that the URL had the ID in place and only 1 secret should
-		//	returned
-		if matched {
-			respond.WithJson(w, s)
+		if rec.Status != models.ActiveStatus {
+			log.Infof("record for ID %s found, but has status %s", rec.Id, rec.Status)
+			respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
 			return
 		}
 
-		//	this means that the URL did not have the ID in place and there is
-		//	the likelyhood that more than 1 can be returned in other code
-		respond.WithJson(w, []*secret.Secret{s})
+		respond.WithJson(w, rec.Secret)
 		return
 
 	case http.MethodPost,
@@ -136,55 +103,124 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		in, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			log.Error(err, "unable to read in request body")
-			respond.WithError(w, http.StatusBadRequest, err, "unable to read in request")
+			respond.WithErrorMessage(w, http.StatusBadRequest, "unable to read in request")
+			return
+		}
+
+		usr := params.Get(UserParam)
+		if len(usr) < 1 {
+			respond.WithErrorMessage(w, http.StatusBadRequest, "a valid user name must be provided")
 			return
 		}
 
 		//	convert request body to secret to (sort of) ensure data received is
 		//	in the expected secret format
-		s := &secret.Secret{}
-		if err := json.Unmarshal(in, &s); err != nil {
-			log.Error(err, "unable to unmarshal request to secret")
-			respond.WithError(w, http.StatusBadRequest, err, "unable to convert request to valid secret")
-			return
-		}
-
-		//	if no id is provided, generate a new "key" using the app name and env
-		if !matched {
-			id = backend.Key(s.App, s.Env)
-		}
-
-		if len(s.Id) < 1 {
-			s.Id = id
-		}
-
-		//	check if the secret with the current id exists in the datastore
-		exists := (len(ds.Get(id)) > 0)
-
-		//	convert back to string before storage
-		out, err := json.Marshal(s)
+		s, err := models.ParseSecret(string(in))
 		if err != nil {
-			log.Error(err, "unable to marshal secret")
-			respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to prep secret for storage")
+			log.Error(err, "unable to unmarshal request to secret")
+			respond.WithErrorMessage(w, http.StatusBadRequest, "unable to convert request to valid secret")
 			return
 		}
 
-		if err := ds.Set(id, string(out)); err != nil {
-			log.Error(err, "unable to write secret to storage")
-			respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to write secret to storage")
-			return
-		}
+		now := time.Now().UnixNano()
 
-		//	respond with 201 if the resource did not exist before
-		if !exists {
+		if !matched {
+			//	trigger a creation record to start the audit trail for a record
+			history := &models.Historical{}
+			if err := history.Write(ds, models.CreateAction, usr, now); err != nil {
+				log.Error(err, "unable to write historical record")
+				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to write record")
+				return
+			}
+
+			//	add in pseudorandom noise along with the app name and env to
+			//	attempt to prevent ID collisions
+			s.Id = s.NewId()
+			rec := &models.Record{
+				Secret:    s,
+				Created:   now,
+				CreatedBy: usr,
+				Updated:   now,
+				UpdatedBy: usr,
+				Status:    models.ActiveStatus,
+			}
+
+			if err := rec.Write(ds); err != nil {
+				log.Error(err, "unable to store record")
+				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to write secret record to storage")
+				return
+			}
+
 			respond.WithJsonCreated(w, s)
 			return
 		}
 
-		respond.WithJson(w, s)
+		//	the ID may not be provided in the submitted secret, so ensure ID is
+		//	set from the request.URL.Path
+		if len(s.Id) < 1 {
+			s.Id = id
+		}
+
+		//	attempt to retrieve the current record based on the provided secret.Id
+		if curr := ds.Get(s.Id); len(curr) > 0 {
+			history, err := models.FromCurrent(curr)
+			if err != nil {
+				log.Error(err, "unable to generate historical record")
+				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to update existing record")
+				return
+			}
+
+			if err := history.Write(ds, models.UpdateAction, usr, now); err != nil {
+				log.Error(err, "unable to write historical record")
+				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to update existing record")
+				return
+			}
+
+			rec := &models.Record{
+				Secret:    s,
+				Created:   history.Created,
+				CreatedBy: history.CreatedBy,
+				Updated:   now,
+				UpdatedBy: usr,
+				Status:    models.ActiveStatus,
+			}
+
+			if err := rec.Write(ds); err != nil {
+				log.Error(err, "unable to write record")
+				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to update existing record")
+				return
+			}
+
+			respond.WithJson(w, s)
+			return
+		}
+
+		respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
 		return
 
 	case http.MethodDelete:
+		usr := params.Get(UserParam)
+		if len(usr) < 1 {
+			respond.WithErrorMessage(w, http.StatusBadRequest, "a valid user name must be provided")
+			return
+		}
+
+		now := time.Now().UnixNano()
+		if curr := ds.Get(id); len(curr) > 0 {
+			history, err := models.FromCurrent(curr)
+			if err != nil {
+				log.Error(err, "unable to generate historical record")
+				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to update existing record")
+				return
+			}
+
+			if err := history.Write(ds, models.ArchiveAction, usr, now); err != nil {
+				log.Error(err, "unable to write historical record")
+				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to update existing record")
+				return
+			}
+		}
+
 		if err := ds.Remove(id); err != nil {
 			log.Errorf("%v: unable to remove secret for id %s", err, id)
 			respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to remove secret")

@@ -10,7 +10,7 @@ import (
 
 	"gitlab.manulife.com/go-common/log"
 	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/crypto/pgp"
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/secret"
+	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/models"
 	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/service"
 
 	"github.com/pkg/errors"
@@ -52,7 +52,7 @@ func Get(context *cli.Context) error {
 
 	//  test / validate if stored content meets the secrets model and also
 	//  to allow for decryption
-	secrets := make([]*secret.Secret, 0)
+	secrets := make([]*models.Secret, 0)
 	if err := json.Unmarshal([]byte(raw), &secrets); err != nil {
 		return cli.Exit(errors.Wrap(err, "unable to convert string to secrets"), 1)
 	}
