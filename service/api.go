@@ -54,8 +54,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			respond.WithMethodNotAllowed(w)
 			return
 		case http.MethodGet:
-			//	if the ID nor app name and environment are not provided, there
-			//	is really no way to retrieve a secret
+			//	if neither the ID nor app name and environment combination are
+			//	provided, there is really no way to retrieve a secret
 			if app, env := params.Get(AppParam), params.Get(EnvParam); len(app) < 1 || len(env) < 1 {
 				respond.WithErrorMessage(w, http.StatusBadRequest, "a valid %s and %s must be specified", AppParam, EnvParam)
 				return
@@ -73,6 +73,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					break
 				}
 			}
+			log.Debugf("attempted to find an ID for app %s and env %s: %s", app, env, id)
 		}
 
 		raw := ds.Get(id)
@@ -93,6 +94,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
 			return
 		}
+		log.Debugf("retrieved secret with ID %s", id)
 
 		respond.WithJson(w, rec.Secret)
 		return
@@ -125,38 +127,53 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		now := time.Now().UnixNano()
 
 		if !matched {
-			//	trigger a creation record to start the audit trail for a record
-			history := &models.Historical{}
-			if err := history.Write(ds, models.CreateAction, usr, now); err != nil {
-				log.Error(err, "unable to write historical record")
-				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to write record")
+			app, env := s.App, s.Env
+			for _, k := range ds.Keys() {
+				if strings.HasSuffix(k, backend.KeySuffix(app, env)) {
+					id = k
+					break
+				}
+			}
+			log.Debugf("attempted to find an ID for app %s and env %s: %s", app, env, id)
+
+			//	no record can be found with the data provided, so attempt to
+			//	generate a new one
+			if len(id) < 1 {
+				//	trigger a creation record to start the audit trail for a record
+				history := &models.Historical{}
+				if err := history.Write(ds, models.CreateAction, usr, now); err != nil {
+					log.Error(err, "unable to write historical record")
+					respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to write record")
+					return
+				}
+				log.Debugf("wrote historical creation record for user %s", usr)
+
+				//	add in pseudorandom noise along with the app name and env to
+				//	attempt to prevent ID collisions
+				s.Id = s.NewId()
+				rec := &models.Record{
+					Secret:    s,
+					Created:   now,
+					CreatedBy: usr,
+					Updated:   now,
+					UpdatedBy: usr,
+					Status:    models.ActiveStatus,
+				}
+
+				if err := rec.Write(ds); err != nil {
+					log.Error(err, "unable to store record")
+					respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to write secret record to storage")
+					return
+				}
+				log.Debugf("created new record with ID %s for user %s", s.Id, usr)
+
+				respond.WithJsonCreated(w, s)
 				return
 			}
-
-			//	add in pseudorandom noise along with the app name and env to
-			//	attempt to prevent ID collisions
-			s.Id = s.NewId()
-			rec := &models.Record{
-				Secret:    s,
-				Created:   now,
-				CreatedBy: usr,
-				Updated:   now,
-				UpdatedBy: usr,
-				Status:    models.ActiveStatus,
-			}
-
-			if err := rec.Write(ds); err != nil {
-				log.Error(err, "unable to store record")
-				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to write secret record to storage")
-				return
-			}
-
-			respond.WithJsonCreated(w, s)
-			return
 		}
 
 		//	the ID may not be provided in the submitted secret, so ensure ID is
-		//	set from the request.URL.Path
+		//	set from the request.URL.Path or found via the app_name / env combo
 		if len(s.Id) < 1 {
 			s.Id = id
 		}
@@ -175,6 +192,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to update existing record")
 				return
 			}
+			log.Debugf("wrote historical record with ID %s for user %s with action %s", s.Id, usr, models.UpdateAction)
 
 			rec := &models.Record{
 				Secret:    s,
@@ -190,6 +208,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to update existing record")
 				return
 			}
+			log.Debugf("wrote updated record with ID %s for user %s", s.Id, usr)
 
 			respond.WithJson(w, s)
 			return
@@ -219,6 +238,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to update existing record")
 				return
 			}
+			log.Debugf("wrote historical record with ID %s for user %s with action %s", id, usr, models.ArchiveAction)
 		}
 
 		if err := ds.Remove(id); err != nil {
@@ -226,6 +246,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to remove secret")
 			return
 		}
+		log.Debugf("removed record with ID %s for user %s", id, usr)
 
 		respond.WithJson(w, nil)
 		return
