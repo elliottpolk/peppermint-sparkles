@@ -7,7 +7,9 @@ package cmd
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net/url"
 	"os"
+	"os/user"
 
 	"gitlab.manulife.com/go-common/log"
 	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/crypto"
@@ -105,7 +107,14 @@ func Set(context *cli.Context) error {
 		return cli.Exit(errors.Wrap(err, "unable to convert secret to JSON string"), 1)
 	}
 
-	res, err := send(asURL(addr, service.PathSecrets, ""), string(out))
+	u, err := user.Current()
+	if err != nil {
+		return cli.Exit(errors.Wrap(err, "unable to retrieve current, logged-in user"), 1)
+	}
+
+	params := url.Values{service.UserParam: []string{u.Username}}
+
+	res, err := send(asURL(addr, service.PathSecrets, params.Encode()), string(out))
 	if err != nil {
 		return cli.Exit(errors.Wrap(err, "unable to send config"), 1)
 	}
