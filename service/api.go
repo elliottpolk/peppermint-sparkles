@@ -35,6 +35,12 @@ type Handler struct {
 	Backend backend.Datastore
 }
 
+func Handle(mux *http.ServeMux, h *Handler) *http.ServeMux {
+	mux.Handle(PathSecrets, middleware.Handler(h))
+	mux.Handle(fmt.Sprintf("%s/", PathSecrets), middleware.Handler(h))
+	return mux
+}
+
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -255,12 +261,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		respond.WithMethodNotAllowed(w)
 		return
 	}
-}
-
-func Handle(mux *http.ServeMux, h *Handler) *http.ServeMux {
-	mux.Handle(PathSecrets, middleware.Handler(h))
-	mux.Handle(fmt.Sprintf("%s/", PathSecrets), middleware.Handler(h))
-	return mux
 }
 
 func getId(path string) (bool, string, error) {
