@@ -5,6 +5,10 @@
 package redis
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"fmt"
+
 	"gitlab.manulife.com/go-common/log"
 	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/backend"
 
@@ -15,16 +19,25 @@ import (
 var ErrInvalidDatastore error = errors.New("no valid datastore")
 
 type Datastore struct {
-	client *redis.Client
+	client     *redis.Client
+	historical *redis.Client
 }
 
 func Open(opts *redis.Options) (*Datastore, error) {
 	opts.DB = 0 //	ensure that is uses the same (default) DB every time
 	ds := &Datastore{client: redis.NewClient(opts)}
 
-	//	ensure a valid connection prior to returning the Datastore
+	opts.DB = 1 //	ensure that is uses the same (default) historical DB every time
+	ds.historical = redis.NewClient(opts)
+
+	//	ensure a valid connection prior to returning
 	if _, err := ds.client.Ping().Result(); err != nil {
 		return nil, errors.Wrap(err, "unable to ping redis datastore")
+	}
+
+	//	ensure a valid connection to the historical store prior to returning
+	if _, err := ds.historical.Ping().Result(); err != nil {
+		return nil, errors.Wrap(err, "unable to ping historical redis datastore")
 	}
 
 	return ds, nil
@@ -38,22 +51,28 @@ func (ds *Datastore) Close() error {
 	return nil
 }
 
-func (ds *Datastore) Keys() []string {
+func keys(client *redis.Client) ([]string, error) {
 	keys := make([]string, 0)
-	if ds.client != nil {
-		k, err := ds.client.Keys("*").Result()
+	if client != nil {
+		k, err := client.Keys("*").Result()
 		if err != nil {
-			//	log error but still return the empty list
-			log.Error(err, "unable to retrieve keys")
-			return keys
+			return keys, err
 		}
 
 		for _, v := range k {
 			keys = append(keys, v)
 		}
 	}
+	return keys, nil
+}
 
-	return keys
+func (ds *Datastore) Keys() []string {
+	vals, err := keys(ds.client)
+	if err != nil {
+		//	log error but still return the empty list
+		log.Error(err, "unable to retrieve keys")
+	}
+	return vals
 }
 
 func (ds *Datastore) Set(key, value string) error {
@@ -63,18 +82,18 @@ func (ds *Datastore) Set(key, value string) error {
 	return ds.client.Set(key, value, 0).Err()
 }
 
-func (ds *Datastore) Get(key string) string {
-	if ds.client != nil {
-		res, err := ds.client.Get(key).Result()
-		if err != nil && err != redis.Nil {
-			//	log error but still return the empty string
-			log.Error(err, "unable to retrieve result for key")
-			return ""
-		}
-		return res
+func get(key string, client *redis.Client) string {
+	res, err := client.Get(key).Result()
+	if err != nil && err != redis.Nil {
+		//	log error but still return the empty string
+		log.Error(err, "unable to retrieve result for key")
+		return ""
 	}
+	return res
+}
 
-	return ""
+func (ds *Datastore) Get(key string) string {
+	return get(key, ds.client)
 }
 
 func (ds *Datastore) Remove(key string) error {
@@ -93,6 +112,47 @@ func (ds *Datastore) List() ([]backend.Value, error) {
 	vals := make([]backend.Value, 0)
 	for _, k := range ds.Keys() {
 		vals = append(vals, backend.Value{k: ds.Get(k)})
+	}
+
+	return vals, nil
+}
+
+func (ds *Datastore) AddHistory(value string) error {
+	if ds.historical == nil {
+		return ErrInvalidDatastore
+	}
+
+	buf := make([]byte, 2048)
+	if _, err := rand.Read(buf); err != nil {
+		return errors.Wrap(err, "unable to read in random data to generate key")
+	}
+
+	//	generate SHA256 token from random content to be stored + random data to
+	// 	attempt to prevent collisions
+	key := fmt.Sprintf("%x", sha256.Sum256(append([]byte(value), buf...)))
+
+	return ds.historical.Set(key, value, 0).Err()
+}
+
+func (ds *Datastore) historicalKeys() []string {
+	vals, err := keys(ds.historical)
+	if err != nil {
+		//	log error but still return the empty list
+		log.Error(err, "unable to retrieve historical keys")
+	}
+	return vals
+}
+
+func (ds *Datastore) Historical() ([]backend.Value, error) {
+	if ds.historical == nil {
+		return nil, ErrInvalidDatastore
+	}
+
+	vals := make([]backend.Value, 0)
+	for _, k := range ds.historicalKeys() {
+		if res := get(k, ds.historical); len(res) > 0 {
+			vals = append(vals, backend.Value{k: res})
+		}
 	}
 
 	return vals, nil

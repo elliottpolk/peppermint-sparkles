@@ -23,12 +23,23 @@ type Datastore interface {
 	Set(key, value string) error
 	Get(key string) string
 	Remove(key string) error
+	AddHistory(value string) error
+	Historical() ([]Value, error)
 }
 
-func Key(values ...string) string {
+func Key(app, env string, values ...string) string {
 	in := make([]byte, 0)
 	for _, v := range values {
 		in = append(in, []byte(v)...)
 	}
-	return fmt.Sprintf("%x", sha256.Sum256(in))
+
+	return fmt.Sprintf("%x%s", sha256.Sum256(in), KeySuffix(app, env))
+}
+
+func KeySuffix(app, env string) string {
+	suf := make([]byte, len(app)+len(env))
+	copy(suf, []byte(app))
+	copy(suf, []byte(env))
+
+	return fmt.Sprintf("%x", sha256.Sum256(suf))
 }

@@ -6,6 +6,8 @@ package cmd
 
 import (
 	"fmt"
+	"net/url"
+	"os/user"
 
 	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/service"
 
@@ -25,7 +27,14 @@ func Remove(context *cli.Context) error {
 		return cli.Exit(errors.New("a valid secret ID must be provided"), 1)
 	}
 
-	if _, err := del(asURL(addr, fmt.Sprintf("%s/%s", service.PathSecrets, id), "")); err != nil {
+	u, err := user.Current()
+	if err != nil {
+		return cli.Exit(errors.Wrap(err, "unable to retrieve current, logged-in user"), 1)
+	}
+
+	params := url.Values{service.UserParam: []string{u.Username}}
+
+	if _, err := del(asURL(addr, fmt.Sprintf("%s/%s", service.PathSecrets, id), params.Encode())); err != nil {
 		return cli.Exit(errors.Wrap(err, "unable to remove secrets"), 1)
 	}
 

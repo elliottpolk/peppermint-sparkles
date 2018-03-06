@@ -1,12 +1,15 @@
 // Created by Elliott Polk on 25/01/2018
 // Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/peppermint-sparkles/secret/model.go
+// oa-montreal/peppermint-sparkles/models/secret.go
 //
-package secret
+package models
 
 import (
+	"crypto/rand"
 	"encoding/json"
-	"fmt"
+
+	"gitlab.manulife.com/go-common/log"
+	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/backend"
 
 	"github.com/pkg/errors"
 )
@@ -18,11 +21,11 @@ type Secret struct {
 	Content string `json:"content"`
 }
 
-func NewSecret(raw string) (*Secret, error) {
+func ParseSecret(raw string) (*Secret, error) {
 	s := &Secret{}
 
 	if err := json.Unmarshal([]byte(raw), &s); err != nil {
-		return nil, errors.Wrap(err, "unable to unmarshal raw secret")
+		return nil, errors.Wrap(err, "unable to parse raw secret")
 	}
 
 	return s, nil
@@ -40,8 +43,18 @@ func (s *Secret) String() (string, error) {
 func (s *Secret) MustString() string {
 	str, err := s.String()
 	if err != nil {
-		return fmt.Sprintf("%+v", s)
+		return ""
 	}
 
 	return str
+}
+
+func (s *Secret) NewId() string {
+	buf := make([]byte, 1024)
+	if _, err := rand.Read(buf); err != nil {
+		log.Error(err, "unable to read in random data for id generation")
+	}
+
+	//	FIXME ... should really allow for a retry on the random read
+	return backend.Key(s.App, s.Env, string(buf))
 }

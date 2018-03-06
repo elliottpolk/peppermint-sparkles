@@ -27,6 +27,7 @@ func main() {
 					&cmd.AddrFlag,
 					&cmd.AppNameFlag,
 					&cmd.AppEnvFlag,
+					&cmd.SecretIdFlag,
 					&cmd.DecryptFlag,
 					&cmd.TokenFlag,
 				},

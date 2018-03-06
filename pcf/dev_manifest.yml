@@ -6,3 +6,6 @@ routes:
 
 services:
 - rainbow-dash-redis
+
+env:
+  LOGGER_LEVEL: debug
