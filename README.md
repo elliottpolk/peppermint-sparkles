@@ -4,11 +4,11 @@
 * [bolt datastore](https://github.com/boltdb/bolt)
 * [redis](https://redis.io/) 
 
-The purpose of **_peppermint-sparkles_** is to provide a configuration / secrets service for services with encryption in mind. Each _secret_ is stored against a **sha256** key based on an application name and environment. Note, encrytion is **_on_** by default. `-encrypt=false` must be used to _not_ encrypt a value.
+The purpose of **_peppermint-sparkles_** is to provide a configuration / secrets service, _for_ services, with encryption in mind. Each _secret_ is stored against a **sha256** key based on an application name and environment. Note, encrytion is **_on_** by default. `-encrypt=false` must be used if there is a desire to _not_ encrypt a value.
 
-Currently, for encrypted data uses [PGP](http://www.pgpi.org/doc/pgpintro/) encryption with a generated, base64 encoded, UUIDv4. The encryption token is **_not_** stored anywhere within the **_peppermint-sparkles_** service or datastore. If the token is not provided by the user, it is generated client-side at the time of encryption and displayed once the configuration has been stored. If the token is lost, it **_can not_** be recovered nor can the data. The tokens must be stored in a safe place and redundancy is recommended to prevent any lost configuration / secret data. It is also _not_ advised to reuse the same token for multiple environments and / or configurations.
+Currently, encrypted data uses [PGP](http://www.pgpi.org/doc/pgpintro/) encryption. If a token/passphrase is not provided by the user, a base64 encoded UUIDv4 is generated client-side at the time of encryption and displayed **_only_** once the configuration has been successfully stored.  The encryption token is **_not_** stored anywhere within the **_peppermint-sparkles_** client, service, or datastore. If the token is lost, it **_can not_** be recovered nor can the data encrypted with said token. The tokens must be stored in a safe, secure place and redundancy is recommended to prevent any lost configuration / secret data. It is also _not_ advised to reuse the same token for multiple environments and / or configurations.
 
-**_NOTE_**: By design, there is no option to list out all apps / secrets. A request to the service **_must_** include the app name at a minimum.
+**_NOTE_**: By design, there is no option to list out all apps / secrets. A request to the service **_must_** include the secret ID or the app name / environment combination.
 
 ---
 
@@ -16,13 +16,13 @@ Currently, for encrypted data uses [PGP](http://www.pgpi.org/doc/pgpintro/) encr
 
 The simplest way to build is to use [**_honey-do_**](https://github.com/elliottpolk/honey-do) and **_Docker_**. By default, running **_honey clean build_** will build the binary (for Linux distros).
 
-For manual builds, this has a dependency on the [Go](https://golang.org) toolchain. Ensure this is installed or you have the appropriate _Docker_ image ([golang:latest](https://hub.docker.com/_/golang/)).
+For manual builds, this has a dependency on the [Go](https://golang.org) toolchain. Ensure Go is installed or you have the appropriate _Docker_ image ([golang:latest](https://hub.docker.com/_/golang/)).
 
 ```bash
 # localhost install of go
 $ go build -o $GOPATH/bin/psparkles -ldflags "-X main.version=v2.0.0"
 
-# Docker
+# Docker example
 $ docker run --rm -it -v $GOPATH:/go -w /go/src/git.platform.io/oa-montreal/peppermint-sparkles golang:latest /bin/bash -c 'go build -o $GOPATH/bin/psparkles -ldflags \"-X main.version=v2.0.0\"'
 ```
 
@@ -44,7 +44,7 @@ USAGE:
    psparkles [global options] command [command options] [arguments...]
 
 VERSION:
-   v2.0.0
+   v2.1.0
 
 COMMANDS:
      get, ls, list                  retrieves secrets
@@ -92,71 +92,83 @@ There are 3 different ways to add a secret:
 
 ```bash
 $ cat secret.json | psparkles set --addr http://localhost:8080
-INFO[0000] token: NWM5N2E4MGEtYTZmZi00MjhhLWE2OTktNWYwOGIwNGQyOTE2
+INFO[0000] token: OTUzMmE1N2QtZjU5MS00N2Y2LWIxZmEtMzBlYzllZjNlYzNj
 INFO[0000] secret:
 {
-   "id": "4dc4ab3350179e0d16c212fcc33240441a4cf7b955aa9c5f2784755bc2ed32f7",
+   "id": "fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742",
    "app_name": "testing",
    "env": "dev",
-   "content": "LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tCgp3eDRFQndNSU5QaURGcTJXQ0dKZ2VoVW91OGNCSmhpcEpMS2FJdUkwUHFiUzRBSGtqaVlCaWt3Ry9sYm45NnFECjdJc0V0dUhEWCtDejROUGhHOVhnZCtKTmtzdzc0SDdsbGVydkZlaGxJcG9vSmN1ejV5Sjg2TVM1OW5EUWJWVnQKbWJGaE5wM2d1eWZnKytUbE1DNUhOeWh3WlE3NnRSUEI3VGk0NEFUaktlREhuSUpVZEZUZ29PR2lrK0NBNEdyZwpsdVIxTlZkdnRJUWdkUVNtYUwrdmp3VUs0bk5Fayt6aHNMa0EKPVcyMWIKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQ=="
+   "content": "LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tCgp3eDRFQndNSUVNU1ZrSjBqMlZ4Z3NINzI0U01ZekE4OUdLbGVUMDMzaGZyUzRBSGtQNkZhcjJYbWEvbnYzWnlNCkVKbmNyT0drcitBcTRPZmhxbC9nYytJYlJRV3k0S2JsOEhSRjVSdUhyb1prN0dPMlcvcTJ4U3FELzNEZWxLZ0wKeEJ6V1hDWjVKSWpnU2VUQTcwNEE3eTNFbVhrWXNLWXlhUUJDNEtMajhCekZMN1Y1a2NIZ24rRTdEdUNnNEhuZwpST1NLVFBIU3NiUXpYeWRYeUxwWU9vWFc0cG0wM1IzaE1UWUEKPUZLVUwKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQ=="
 }
 ```
 
-### getting an existing secret
+### getting an existing secret with the app name and envrionment
 
 ```bash
 # encrypted
 $ psparkles get -addr http://localhost:8080 -a testing -e dev
 INFO[0000]
 {
- "id": "4dc4ab3350179e0d16c212fcc33240441a4cf7b955aa9c5f2784755bc2ed32f7",
+ "id": "fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742",
  "app_name": "testing",
  "env": "dev",
- "content": "LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tCgp3eDRFQndNSU5QaURGcTJXQ0dKZ2VoVW91OGNCSmhpcEpMS2FJdUkwUHFiUzRBSGtqaVlCaWt3Ry9sYm45NnFECjdJc0V0dUhEWCtDejROUGhHOVhnZCtKTmtzdzc0SDdsbGVydkZlaGxJcG9vSmN1ejV5Sjg2TVM1OW5EUWJWVnQKbWJGaE5wM2d1eWZnKytUbE1DNUhOeWh3WlE3NnRSUEI3VGk0NEFUaktlREhuSUpVZEZUZ29PR2lrK0NBNEdyZwpsdVIxTlZkdnRJUWdkUVNtYUwrdmp3VUs0bk5Fayt6aHNMa0EKPVcyMWIKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQ=="
+ "content": "LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tCgp3eDRFQndNSUVNU1ZrSjBqMlZ4Z3NINzI0U01ZekE4OUdLbGVUMDMzaGZyUzRBSGtQNkZhcjJYbWEvbnYzWnlNCkVKbmNyT0drcitBcTRPZmhxbC9nYytJYlJRV3k0S2JsOEhSRjVSdUhyb1prN0dPMlcvcTJ4U3FELzNEZWxLZ0wKeEJ6V1hDWjVKSWpnU2VUQTcwNEE3eTNFbVhrWXNLWXlhUUJDNEtMajhCekZMN1Y1a2NIZ24rRTdEdUNnNEhuZwpST1NLVFBIU3NiUXpYeWRYeUxwWU9vWFc0cG0wM1IzaE1UWUEKPUZLVUwKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQ=="
 }
 
 # to decrypt
-$ psparkles get -addr http://localhost:8080 -a testing -e dev -decrypt -t NWM5N2E4MGEtYTZmZi00MjhhLWE2OTktNWYwOGIwNGQyOTE2
+$ psparkles get -addr http://localhost:8080 -a testing -e dev --decrypt -t OTUzMmE1N2QtZjU5MS00N2Y2LWIxZmEtMzBlYzllZjNlYzNj
 INFO[0000]
 {
- "id": "4dc4ab3350179e0d16c212fcc33240441a4cf7b955aa9c5f2784755bc2ed32f7",
+ "id": "fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742",
  "app_name": "testing",
  "env": "dev",
  "content": "{\"user\": \"some_admin\", \"passwd\": \"some_SUPER.Secret#Value\"}"
 }
 ```
 
+### getting an existing secret with the ID
+
+```bash
+# encrypted
+$ psparkles get -addr http://localhost:8080 --id fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742
+INFO[0000]
+{
+ "id": "fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742",
+ "app_name": "testing",
+ "env": "dev",
+ "content": "LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tCgp3eDRFQndNSUVNU1ZrSjBqMlZ4Z3NINzI0U01ZekE4OUdLbGVUMDMzaGZyUzRBSGtQNkZhcjJYbWEvbnYzWnlNCkVKbmNyT0drcitBcTRPZmhxbC9nYytJYlJRV3k0S2JsOEhSRjVSdUhyb1prN0dPMlcvcTJ4U3FELzNEZWxLZ0wKeEJ6V1hDWjVKSWpnU2VUQTcwNEE3eTNFbVhrWXNLWXlhUUJDNEtMajhCekZMN1Y1a2NIZ24rRTdEdUNnNEhuZwpST1NLVFBIU3NiUXpYeWRYeUxwWU9vWFc0cG0wM1IzaE1UWUEKPUZLVUwKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQ=="
+}
+
+# to decrypt
+$ psparkles get -addr http://localhost:8080 --id fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742 --decrypt -t OTUzMmE1N2QtZjU5MS00N2Y2LWIxZmEtMzBlYzllZjNlYzNj
+INFO[0000]
+{
+ "id": "fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742",
+ "app_name": "testing",
+ "env": "dev",
+ "content": "{\"user\": \"some_admin\", \"passwd\": \"some_SUPER.Secret#Value\"}"
+}
+```
+
+
 ### removing configurations
 
 ```bash
 # displaying current state just for example
-$ psparkles get -addr http://localhost:8080 -a testing 
+$ psparkles get -addr http://localhost:8080 -a testing -e dev
 INFO[0000]
 {
- "id": "4dc4ab3350179e0d16c212fcc33240441a4cf7b955aa9c5f2784755bc2ed32f7",
+ "id": "fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742",
  "app_name": "testing",
  "env": "dev",
- "content": "LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tCgp3eDRFQndNSVNDOUhtZjRGTHA5Z3hhOFY3ODFlM3lqaEtuODJ6VlZCR2NUUzRBSGs1QmVDU0dnWEx3VGNkczY4Cnp4MWhwZUU2MitEZTRBamhGOHZnU3VMa0RpdTg0UHpsTVpyV2VEREVuTk96eWFFblVtODQzejlua1JJckd1eUsKdjZ0cXYwSk94dFBnRGVSVFljZGN2bnptR0Rielo0M3c5TDZjNERYalNRYmFIZGRabmpmZ2NlSEhJdURHNEF6ZwpTT1FmQ01oUVlCS3BqSlVYM2YyeEpPNjM0bGNnaW5yaHgzd0EKPVdFai8KLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQ=="
-}
-
-INFO[0000]
-{
- "id": "17787a9f81d80650c26f6584232e4faf1ab379b81a8f25f6ff30ef7513030e15",
- "app_name": "testing",
- "env": "test",
- "content": "LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tCgp3eDRFQndNSTBMOUtnRjErWTRGZ1BHSTRyNEFKZWF5ZzFZNXpBTFozdzEvUzRBSGtFa2h3NmlzbDVhR3JBY3l6CnBXWEw1K0VxSE9BbzRNamgvTWJnWE9LR2NVK0c0S0hsWUU2ZFBLYUFjOHU5eG9aYVNOWDluOHJJVkdHVFc5ajkKRk9LSUoxbUVEMVRnMmVSQkN5alZoWWxWcGlUK21RUzJDU0JDNEwzakY2b2hHV1pxRkh2Z1BlR1RVK0MvNEtMZwo4T1FwV0FwUithZ2NBRVprT1NDM05aWEM0bVQrK3ZIaDF4b0EKPUhOKzcKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQ=="
+ "content": "LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tCgp3eDRFQndNSUVNU1ZrSjBqMlZ4Z3NINzI0U01ZekE4OUdLbGVUMDMzaGZyUzRBSGtQNkZhcjJYbWEvbnYzWnlNCkVKbmNyT0drcitBcTRPZmhxbC9nYytJYlJRV3k0S2JsOEhSRjVSdUhyb1prN0dPMlcvcTJ4U3FELzNEZWxLZ0wKeEJ6V1hDWjVKSWpnU2VUQTcwNEE3eTNFbVhrWXNLWXlhUUJDNEtMajhCekZMN1Y1a2NIZ24rRTdEdUNnNEhuZwpST1NLVFBIU3NiUXpYeWRYeUxwWU9vWFc0cG0wM1IzaE1UWUEKPUZLVUwKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQ=="
 }
 
 # REMOVE
-$ psparkles rm -addr http://localhost:8080 -id 4dc4ab3350179e0d16c212fcc33240441a4cf7b955aa9c5f2784755bc2ed32f7
+$ psparkles rm -addr http://localhost:8080 --id fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742
 
-# validate remaining for example
-$ psparkles get -addr http://localhost:8080 -a testing
-INFO[0000]
-{
- "id": "17787a9f81d80650c26f6584232e4faf1ab379b81a8f25f6ff30ef7513030e15",
- "app_name": "testing",
- "env": "test",
- "content": "LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tCgp3eDRFQndNSTBMOUtnRjErWTRGZ1BHSTRyNEFKZWF5ZzFZNXpBTFozdzEvUzRBSGtFa2h3NmlzbDVhR3JBY3l6CnBXWEw1K0VxSE9BbzRNamgvTWJnWE9LR2NVK0c0S0hsWUU2ZFBLYUFjOHU5eG9aYVNOWDluOHJJVkdHVFc5ajkKRk9LSUoxbUVEMVRnMmVSQkN5alZoWWxWcGlUK21RUzJDU0JDNEwzakY2b2hHV1pxRkh2Z1BlR1RVK0MvNEtMZwo4T1FwV0FwUithZ2NBRVprT1NDM05aWEM0bVQrK3ZIaDF4b0EKPUhOKzcKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQ=="
-}
+# validate for example
+$ psparkles get -addr http://localhost:8080 -a testing -e dev
+$
+
 ```
