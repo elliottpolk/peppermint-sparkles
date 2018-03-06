@@ -7,6 +7,7 @@ package cmd
 import (
 	"encoding/json"
 	"net/url"
+	"path"
 
 	"gitlab.manulife.com/go-common/log"
 	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/crypto/pgp"
@@ -24,11 +25,6 @@ func Get(context *cli.Context) error {
 		return nil
 	}
 
-	app := context.String(AppNameFlag.Names()[0])
-	if len(app) < 1 {
-		return cli.Exit(errors.New("a valid app name must be provided"), 1)
-	}
-
 	token := context.String(TokenFlag.Names()[0])
 	decrypt := context.Bool(DecryptFlag.Names()[0])
 
@@ -36,12 +32,27 @@ func Get(context *cli.Context) error {
 		return cli.Exit(errors.New("decrypt token must be specified in order to decrypt"), 1)
 	}
 
-	params := &url.Values{service.AppParam: []string{app}}
-	if env := context.String(AppEnvFlag.Names()[0]); len(env) > 0 {
-		params.Add(service.EnvParam, env)
+	id := context.String(SecretIdFlag.Names()[0])
+	app := context.String(AppNameFlag.Names()[0])
+	env := context.String(AppEnvFlag.Names()[0])
+
+	params := &url.Values{}
+	from := service.PathSecrets
+
+	if len(id) < 1 {
+		if len(app) < 1 || len(env) < 1 {
+			return cli.Exit(errors.New("a valid secret ID or app name / environment combo must be provided"), 1)
+		} else {
+			params = &url.Values{
+				service.AppParam: []string{app},
+				service.EnvParam: []string{env},
+			}
+		}
+	} else {
+		from = path.Join(from, id)
 	}
 
-	raw, err := retrieve(asURL(addr, service.PathSecrets, params.Encode()))
+	raw, err := retrieve(asURL(addr, from, params.Encode()))
 	if err != nil && err.Error() != "no valid secret" {
 		return cli.Exit(errors.Wrap(err, "unable to retrieve secret"), 1)
 	}
