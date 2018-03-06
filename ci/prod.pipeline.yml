@@ -115,7 +115,6 @@ jobs:
   plan:
   - get: peppermint-sparkles
     resource: git-source-prod
-    trigger: true
     passed: [unit-test-prod]
   - get: peppermint-sparkles/build/bin
     resource: binary-repo
