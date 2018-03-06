@@ -26,4 +26,4 @@ build/
 confgr.db
 .DS_store
 
-*-credentials.*
+*-cred*.*
