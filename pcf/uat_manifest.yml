@@ -1,0 +1,8 @@
+---
+inherit: base_manifest.yml
+
+routes:
+- route: peppermint-sparkles-uat.apps.cac.pcf.manulife.com
+
+services:
+- rainbow-dash-redis
