@@ -77,12 +77,13 @@ jobs:
 - name: deploy-dev
   serial: true
   plan:
-  - get: peppermint-sparkles
-    resource: git-source-dev 
-    trigger: true
-    passed: [unit-test-dev]
-  - get: peppermint-sparkles/build/bin
-    resource: binary-repo
+  - aggregate:
+    - get: peppermint-sparkles
+      resource: git-source-dev 
+      trigger: true
+      passed: [unit-test-dev]
+    - get: peppermint-sparkles/build/bin
+      resource: binary-repo
   - task: redis
     file: peppermint-sparkles/ci/tasks/redis_service.yml
     params:
@@ -110,12 +111,13 @@ jobs:
 - name: deploy-tst
   serial: true
   plan:
-  - get: peppermint-sparkles
-    resource: git-source-test
-    trigger: true
-    passed: [unit-test-tst]
-  - get: peppermint-sparkles/build/bin
-    resource: binary-repo
+  - aggregate:
+    - get: peppermint-sparkles
+      resource: git-source-test
+      trigger: true
+      passed: [unit-test-tst]
+    - get: peppermint-sparkles/build/bin
+      resource: binary-repo
   - task: redis
     file: peppermint-sparkles/ci/tasks/redis_service.yml
     params:
