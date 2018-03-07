@@ -7,7 +7,7 @@ package crypto
 import (
 	"encoding/base64"
 
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/uuid"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
 
 	"github.com/pkg/errors"
 )

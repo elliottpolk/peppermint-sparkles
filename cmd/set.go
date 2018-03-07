@@ -11,11 +11,11 @@ import (
 	"os"
 	"os/user"
 
-	"gitlab.manulife.com/go-common/log"
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/crypto"
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/crypto/pgp"
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/models"
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/service"
+	"git.platform.manulife.io/go-common/log"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto/pgp"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/models"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
 
 	"github.com/pkg/errors"
 	"gopkg.in/urfave/cli.v2"

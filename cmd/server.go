@@ -9,12 +9,12 @@ import (
 	"net/http"
 	"os"
 
-	"gitlab.manulife.com/go-common/log"
-	"gitlab.manulife.com/go-common/pcf/vcap"
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/backend"
-	fileds "gitlab.manulife.com/oa-montreal/peppermint-sparkles/backend/file"
-	redisds "gitlab.manulife.com/oa-montreal/peppermint-sparkles/backend/redis"
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/service"
+	"git.platform.manulife.io/go-common/log"
+	"git.platform.manulife.io/go-common/pcf/vcap"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend"
+	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
+	redisds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/redis"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
 
 	bolt "github.com/coreos/bbolt"
 	"github.com/go-redis/redis"

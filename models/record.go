@@ -6,7 +6,7 @@ package models
 import (
 	"encoding/json"
 
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/backend"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend"
 
 	"github.com/pkg/errors"
 )

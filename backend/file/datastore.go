@@ -9,7 +9,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/backend"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend"
 
 	bolt "github.com/coreos/bbolt"
 	"github.com/pkg/errors"

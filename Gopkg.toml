@@ -31,15 +31,15 @@
 
 [[constraint]]
     branch = "master"
-    name = "gitlab.manulife.com/go-common/log"
-    source = "ssh://git@gitlab.manulife.com:2222/go-common/log.git"
+    name = "git.platform.manulife.io/go-common/log"
+    source = "ssh://git@git.platform.manulife.io:2222/go-common/log.git"
 
 [[constraint]]
     branch = "master"
-    name = "gitlab.manulife.com/go-common/pcf"
-    source = "ssh://git@gitlab.manulife.com:2222/go-common/pcf.git"
+    name = "git.platform.manulife.io/go-common/pcf"
+    source = "ssh://git@git.platform.manulife.io:2222/go-common/pcf.git"
 
 [[constraint]]
     branch = "master"
-    name = "gitlab.manulife.com/go-common/respond"
-    source = "ssh://git@gitlab.manulife.com:2222/go-common/respond.git"
+    name = "git.platform.manulife.io/go-common/respond"
+    source = "ssh://git@git.platform.manulife.io:2222/go-common/respond.git"

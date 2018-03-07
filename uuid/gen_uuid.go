@@ -9,7 +9,7 @@ package main
 import (
 	"fmt"
 
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/uuid"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
 )
 
 func main() {
