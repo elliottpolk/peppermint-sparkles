@@ -13,8 +13,8 @@ import (
 )
 
 type Crypter interface {
-	Encrypt(tok, text []byte) ([]byte, error)
-	Decrypt(tok, cypher []byte) ([]byte, error)
+	Encrypt(text []byte) ([]byte, error)
+	Decrypt(cypher []byte) ([]byte, error)
 }
 
 func NewToken() (string, error) {
