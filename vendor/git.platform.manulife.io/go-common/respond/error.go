@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"gitlab.manulife.com/go-common/log"
+	"git.platform.manulife.io/go-common/log"
 )
 
 func WithErrorMessage(w http.ResponseWriter, statuscode int, format string, args ...interface{}) {

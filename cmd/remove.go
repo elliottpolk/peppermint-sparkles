@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"os/user"
 
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/service"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
 
 	"github.com/pkg/errors"
 	"gopkg.in/urfave/cli.v2"

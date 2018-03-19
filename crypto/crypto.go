@@ -7,14 +7,14 @@ package crypto
 import (
 	"encoding/base64"
 
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/uuid"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
 
 	"github.com/pkg/errors"
 )
 
 type Crypter interface {
-	Encrypt(tok, text []byte) ([]byte, error)
-	Decrypt(tok, cypher []byte) ([]byte, error)
+	Encrypt(text []byte) ([]byte, error)
+	Decrypt(cypher []byte) ([]byte, error)
 }
 
 func NewToken() (string, error) {

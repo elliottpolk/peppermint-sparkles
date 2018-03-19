@@ -7,7 +7,7 @@ package main
 import (
 	"os"
 
-	"gitlab.manulife.com/oa-montreal/peppermint-sparkles/cmd"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/cmd"
 
 	"gopkg.in/urfave/cli.v2"
 )

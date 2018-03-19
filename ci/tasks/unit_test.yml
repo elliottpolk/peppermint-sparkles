@@ -7,12 +7,12 @@ image_resource:
     tag: 1.9.4
 inputs:
 - name: peppermint-sparkles
-  path: /src/gitlab.manulife.com/oa-montreal/peppermint-sparkles
+  path: /src/git.platform.manulife.io/oa-montreal/peppermint-sparkles
 run:
   path: sh
   args:
     - -exec
     - |
       export GOPATH=${PWD}
-      cd $GOPATH/src/gitlab.manulife.com/oa-montreal/peppermint-sparkles
+      cd $GOPATH/src/git.platform.manulife.io/oa-montreal/peppermint-sparkles
       go test -v -cover ./...
