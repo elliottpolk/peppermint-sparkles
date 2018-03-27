@@ -3,6 +3,8 @@
 ###
 # any cf commands, such as `cf create-service`, should go here
 
+echo "DEBUG: running push.sh"
+
 ## FIXME - check to see if `find` returns more than 1 result and fail for review
 # cd to source directory
 cd /tmp/build && cd $(find . -type d -name "peppermint-sparkles" | head -1)
