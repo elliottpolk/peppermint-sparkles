@@ -182,3 +182,13 @@ $ psparkles get -addr http://localhost:8080 -a testing -e dev
 $
 
 ```
+
+---
+
+## TODO
+
+- [ ] Audit Tool
+    - [ ] CLI
+    - [ ] WebUI
+- [ ] Hardware key integration
+- [ ] `fly` / `Concourse` integration
