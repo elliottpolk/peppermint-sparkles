@@ -11,6 +11,8 @@ The purpose of **_Peppermint Sparkles_** is to provide a configuration / secrets
 
 Currently, encrypted data uses [PGP](http://www.pgpi.org/doc/pgpintro/) encryption. If a token/passphrase is not provided by the user, a base64 encoded UUIDv4 is generated client-side at the time of encryption and displayed **_only_** once the configuration has been successfully stored.  The encryption token is **_not_** stored anywhere within the **_Peppermint Sparkles_** client, service, or datastore. If the token is lost, it **_can not_** be recovered nor can the data encrypted with said token. The tokens must be stored in a safe, secure place and redundancy is recommended to prevent any lost configuration / secret data. It is also _not_ advised to reuse the same token for multiple environments and / or configurations.
 
+This is a fork and extension of the open-source project [confgr](https://github.com/elliottpolk/confgr). The original project was created under the MIT lincense and this repo _should_ continue that as a result.
+
 **_NOTE_**: By design, there is no option to list out all apps / secrets. A request to the service **_must_** include the secret ID or the app name / environment combination.
 ---
 
