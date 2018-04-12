@@ -10,10 +10,8 @@ The below pipeline example assumes the application has integrated with **_Pepper
 groups:
 - name: super-dope
   jobs:
-  - unit-test-dev
-  - deploy-dev
-  - unit-test-tst
-  - deploy-tst
+  - unit-tests
+  - deploy
 
 resource_types:
 - name: artifactory
@@ -26,94 +24,97 @@ resources:
   type: artifactory
   source:
     endpoint: {{ARTIFACTORY_URI}}
-    repository: /libs-release-local/oa-montreal/super-dope/
+    repository: {{ARTIFACTORY_REPO}}
     regex: "super-dope-v(?<version>[0-9].[0-9].[0-9]).tar.bz2"
     username: {{ARTIFACTORY_USER}}
     password: {{ARTIFACTORY_PASS}}
     skip_ssl_verification: true
 
-- name: git-source-dev
+- name: git-source
   type: git
   source:
     branch: {{GIT_BRANCH}}
-    tag_filter: "*.dev"
+    tag_filter: "*.deploy"
     uri: {{GIT_URI}}
     private_key: {{GIT_PRIVATE_KEY}}
     skip_ssl_verification: true
 
-- name: pcf-dev
+- name: pcf
   type: cf
   source:
     api: {{PCF_API}}
-    username: {{PCF_DEV_USER}}
-    password: {{PCF_DEV_PASS}}
+    username: {{PCF_USER}}
+    password: {{PCF_PASS}}
     organization: GSD-CAC-DEV
-    space: SUPER-DOPE-CAC-DEV
-    skip_cert_check: true
-
-- name: git-source-test
-  type: git
-  source:
-    branch: {{GIT_BRANCH}}
-    tag_filter: "*.tst"
-    uri: {{GIT_URI}}
-    private_key: {{GIT_PRIVATE_KEY}}
-    skip_ssl_verification: true
-
-- name: pcf-test
-  type: cf
-  source:
-    api: {{PCF_API}}
-    username: {{PCF_TST_USER}}
-    password: {{PCF_TST_PASS}}
-    organization: GSD-CAC-TST
-    space: SUPER-DOPE-CAC-TST
+    space: OA-MONTREAL-CAC-DEV
     skip_cert_check: true
 
 jobs:
+
 # DEV environment
-- name: unit-test-dev
+- name: unit-tests
   plan:
   - get: super-dope
-    resource: git-source-dev
+    resource: git-source
     trigger: true
   - task: unit
     file: super-dope/ci/tasks/unit_test.yml
 
-- name: deploy-dev
+- name: deploy
   serial: true
   plan:
-  - get: super-dope
-    resource: git-source-dev
-    trigger: true
-    passed: [unit-test-dev]
-  - get: super-dope/build/bin
-    resource: binary-repo
-  - put: pcf-dev
-    params:
-      manifest: super-dope/pcf/dev_manifest.yml
+  - aggregate:
+    - { get: source, resource: git-source, passed: [unit-tests], trigger: true }
+    - { get: bin, resource: binary-repo }
 
-# TST environment
-- name: unit-test-tst
-  plan:
-  - get: super-dope
-    resource: git-source-test
-    trigger: true
-  - task: unit
-    file: super-dope/ci/tasks/unit_test.yml
-
-- name: deploy-tst
-  serial: true
-  plan:
-  - get: super-dope
-    resource: git-source-test
-    trigger: true
-    passed: [unit-test-tst]
-  - get: super-dope/build/bin
-    resource: binary-repo
-  - put: pcf-test
+  ### LOOK HERE FOR THE SAUCE!
+  ### "EXPLODED" VERSION FOR REFERENCE ONLY. CAN BE IN YAML / SCRIPT FILE.
+  - task: merge
     params:
-      manifest: super-dope/pcf/tst_manifest.yml
+      TERM: xterm
+      sparkles_token: {{SPARKLES_MAGIC}}
+      sparkles_env: {{SPARKLES_ENV}}
+      sparkles_addr: {{SPARKLES_ADDR}}
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: 10.234.24.211:443/peppermint-sparkles-helper
+          insecure_registries: ["10.234.24.211:443"]
+      inputs:
+      - name: source
+      - name: bin
+      outputs:
+      - name: super-dope
+      run:
+        path: sh
+        args:
+        - -exec
+        - |
+          set -o errexit
+          set -o xtrace
+
+          TARGET="super-dope"
+
+          # ensure 'super-dope/build/bin' directory exists
+          mkdir -p ${TARGET}/build/bin/
+
+          # generate .profile and .vars files          
+          set +x \
+            && printf 'source .vars && rm .vars' > ${TARGET}/build/bin/.profile \
+            && printf "export SPARKLES_TOKEN=\"${sparkles_token}\"" >> ${TARGET}/build/bin/.vars \
+            && printf "export SPARKLES_ADDR=\"${sparkles_addr}\"" >> ${TARGET}/build/bin/.vars \
+            && printf "export SPARKLES_ENV=\"${sparkles_env}\"" >> ${TARGET}/build/bin/.vars \
+            && set -x
+
+          # merge source and binary into expected repo dir 'super-dope'
+          mv source/* ${TARGET}/ && \
+          mv bin/* ${TARGET}/build/bin/
+
+  - put: pcf
+    params:
+      manifest: super-dope/pcf/manifest.yml
 
 ```
 

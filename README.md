@@ -18,7 +18,7 @@ This is a fork and extension of the open-source project [confgr](https://github.
 
 ## Peppermint Sparkles Helper
 
-A helper Docker container has been created for integration patterns. Use and examples are available:
+A Docker container has been created for helping with integration patterns. Usage and examples are available for the following platforms:
 
 * [Concourse](ci/README.md)
 
