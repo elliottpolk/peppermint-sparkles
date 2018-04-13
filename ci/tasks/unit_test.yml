@@ -4,7 +4,7 @@ image_resource:
   source:
     insecure_registries: ["10.234.24.211:443"]
     repository: 10.234.24.211:443/golang
-    tag: 1.9.4
+    tag: latest
 inputs:
 - name: peppermint-sparkles
   path: /src/git.platform.manulife.io/oa-montreal/peppermint-sparkles
@@ -15,4 +15,5 @@ run:
     - |
       export GOPATH=${PWD}
       cd $GOPATH/src/git.platform.manulife.io/oa-montreal/peppermint-sparkles
-      go test -v -cover ./...
+      go get -v ./... && \
+      go test -v -cover -race ./...

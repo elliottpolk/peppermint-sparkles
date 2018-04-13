@@ -1,18 +1,30 @@
-# About
-**_peppermint-sparkles_** is a simple CLI client and service backed by a configurable key/value datastore. The current storage options are:
+# Peppermint Sparkles
+
+## About
+
+**_Peppermint Sparkles_** (_**sparkles** for short_) is a simple, zero-knowledge service and CLI client backed by a configurable key/value datastore. The current storage options are:
 
 * [bolt datastore](https://github.com/boltdb/bolt)
-* [redis](https://redis.io/) 
+* [redis](https://redis.io/)
 
-The purpose of **_peppermint-sparkles_** is to provide a configuration / secrets service, _for_ services, with encryption in mind. Each _secret_ is stored against a **sha256** key based on an application name and environment. Note, encrytion is **_on_** by default. `-encrypt=false` must be used if there is a desire to _not_ encrypt a value.
+The purpose of **_Peppermint Sparkles_** is to provide a configuration / secrets service, _for_ services, with encryption in mind. Each _secret_ is stored against a **sha256** key based on an application name and environment. Note, encrytion is **_on_** by default. `-encrypt=false` must be used if there is a desire to _not_ encrypt a value.
 
-Currently, encrypted data uses [PGP](http://www.pgpi.org/doc/pgpintro/) encryption. If a token/passphrase is not provided by the user, a base64 encoded UUIDv4 is generated client-side at the time of encryption and displayed **_only_** once the configuration has been successfully stored.  The encryption token is **_not_** stored anywhere within the **_peppermint-sparkles_** client, service, or datastore. If the token is lost, it **_can not_** be recovered nor can the data encrypted with said token. The tokens must be stored in a safe, secure place and redundancy is recommended to prevent any lost configuration / secret data. It is also _not_ advised to reuse the same token for multiple environments and / or configurations.
+Currently, encrypted data uses [PGP](http://www.pgpi.org/doc/pgpintro/) encryption. If a token/passphrase is not provided by the user, a base64 encoded UUIDv4 is generated client-side at the time of encryption and displayed **_only_** once the configuration has been successfully stored.  The encryption token is **_not_** stored anywhere within the **_Peppermint Sparkles_** client, service, or datastore. If the token is lost, it **_can not_** be recovered nor can the data encrypted with said token. The tokens must be stored in a safe, secure place and redundancy is recommended to prevent any lost configuration / secret data. It is also _not_ advised to reuse the same token for multiple environments and / or configurations.
+
+This is a fork and extension of the open-source project [confgr](https://github.com/elliottpolk/confgr). The original project was created under the MIT lincense and this repo _should_ continue that as a result.
 
 **_NOTE_**: By design, there is no option to list out all apps / secrets. A request to the service **_must_** include the secret ID or the app name / environment combination.
+---
+
+## Peppermint Sparkles Helper
+
+A Docker container has been created for helping with integration patterns. Usage and examples are available for the following platforms:
+
+* [Concourse](ci/README.md)
 
 ---
 
-# Building
+## Building
 
 The simplest way to build is to use [**_honey-do_**](https://github.com/elliottpolk/honey-do) and **_Docker_**. By default, running **_honey clean build_** will build the binary (for Linux distros).
 
@@ -27,12 +39,12 @@ $ docker run --rm -it -v $GOPATH:/go -w /go/src/git.platform.io/oa-montreal/pepp
 ```
 
 For additional build help and ideas, review the `Honeyfile.yml`
- 
+
 ---
 
-# Running
+## Running
 
-**_peppermint-sparkles_** can be run in either _client_ or _server_ mode.
+**_Peppermint Sparkles_** can be run in either _client_ or _server_ mode.
 
 ```bash
 # client
@@ -172,3 +184,13 @@ $ psparkles get -addr http://localhost:8080 -a testing -e dev
 $
 
 ```
+
+---
+
+## TODO
+
+- [ ] Audit Tool
+    - [ ] CLI
+    - [ ] WebUI
+- [ ] Hardware key integration
+- [ ] `fly` / _Concourse_ integration
