@@ -1,0 +1,328 @@
+---
+
+groups:
+- name: peppermint-sparkles
+  jobs:
+  - unit-test-dev
+  - deploy-dev
+  - unit-test-tst
+  - deploy-tst
+  - unit-test-uat
+  - deploy-uat
+  - unit-test-prod
+  - deploy-prod
+
+- name: dev
+  jobs:
+  - unit-test-dev
+  - deploy-dev
+
+- name: tst
+  jobs:
+  - unit-test-tst
+  - deploy-tst
+
+- name: uat
+  jobs:
+  - unit-test-uat
+  - deploy-uat
+
+- name: prod
+  jobs:
+  - unit-test-prod
+  - deploy-prod
+
+resource_types:
+- name: artifactory
+  type: docker-image
+  source:
+    insecure_registries: ["10.234.24.211:443"]
+    repository: 10.234.24.211:443/artifactory-resource
+
+- name: pcf-api-helper
+  type: docker-image
+  source:
+    insecure_registries: ["10.234.24.211:443"]
+    repository: 10.234.24.211:443/http-api-resource
+    tag: latest
+
+resources:
+- name: binary-repo
+  type: artifactory
+  source:
+    endpoint: {{ARTIFACTORY_URI}}
+    repository: {{ARTIFACTORY_REPO}}
+    regex: "peppermint-sparkles-v(?<version>[0-9].[0-9].[0-9]).tar.bz2"
+    username: {{ARTIFACTORY_USER}}
+    password: {{ARTIFACTORY_PASS}}
+    skip_ssl_verification: true
+
+# git resources
+- name: git-source-dev
+  type: git
+  source:
+    branch: {{GIT_BRANCH}}
+    tag_filter: "*.dev"
+    uri: {{GIT_URI}}
+    private_key: {{GIT_PRIVATE_KEY}}
+    skip_ssl_verification: true
+
+- name: git-source-test
+  type: git
+  source:
+    branch: {{GIT_BRANCH}}
+    tag_filter: "*.tst"
+    uri: {{GIT_URI}}
+    private_key: {{GIT_PRIVATE_KEY}}
+    skip_ssl_verification: true
+
+- name: git-source-uat
+  type: git
+  source:
+    branch: {{GIT_BRANCH}}
+    tag_filter: "*.uat"
+    uri: {{GIT_URI}}
+    private_key: {{GIT_PRIVATE_KEY}}
+    skip_ssl_verification: true
+
+- name: git-source-prod
+  type: git
+  source:
+    branch: master
+    uri: {{GIT_URI}}
+    private_key: {{GIT_PRIVATE_KEY}}
+    skip_ssl_verification: true
+
+# pcf resources
+- name: pcf-uat
+  type: cf
+  source:
+    api: {{PCF_API}}
+    username: {{PCF_UAT_USER}}
+    password: {{PCF_UAT_PASS}}
+    organization: GSD-CAC-UAT
+    space: OA-MONTREAL-CAC-UAT
+    skip_cert_check: true
+
+- name: pcf-prod
+  type: cf
+  source:
+    api: {{PCF_API}}
+    username: {{PCF_PROD_USER}}
+    password: {{PCF_PROD_PASS}}
+    organization: GSD-CAC-PROD
+    space: OA-MONTREAL-CAC-PROD
+    skip_cert_check: true
+
+- name: pcf-dev
+  type: pcf-api-helper
+  source:
+    uri: {{PCF_HELPER_API}}
+    method: POST
+    ssl_verify: false
+    json:
+      buildTeamName: "{BUILD_TEAM_NAME}"         #populated automatically
+      buildId: "{BUILD_ID}"                      #populated automatically
+      buildName: "{BUILD_NAME}"                  #populated automatically
+      buildJobName: "{BUILD_JOB_NAME}"           #populated automatically
+      buildPipelineName: "{BUILD_PIPELINE_NAME}" #populated automatically
+      org: "GSD-CAC-DEV"
+      deploy_script: "peppermint-sparkles/ci/scripts/push.sh"
+      division: {{DIVISION}}
+      buildTaskName: "merge-dev"
+
+- name: pcf-test
+  type: pcf-api-helper
+  source:
+    uri: {{PCF_HELPER_API}}
+    method: POST
+    ssl_verify: false
+    json:
+      buildTeamName: "{BUILD_TEAM_NAME}"         #populated automatically
+      buildId: "{BUILD_ID}"                      #populated automatically
+      buildName: "{BUILD_NAME}"                  #populated automatically
+      buildJobName: "{BUILD_JOB_NAME}"           #populated automatically
+      buildPipelineName: "{BUILD_PIPELINE_NAME}" #populated automatically
+      org: "GSD-CAC-TST"
+      deploy_script: "peppermint-sparkles/ci/scripts/push.sh"
+      division: {{DIVISION}}
+      buildTaskName: "merge-tst"
+
+jobs:
+# DEV environment
+- name: unit-test-dev
+  plan:
+  - get: peppermint-sparkles
+    resource: git-source-dev
+    trigger: true
+  - task: unit
+    file: peppermint-sparkles/ci/tasks/unit_test.yml
+
+- name: deploy-dev
+  serial: true
+  plan:
+  - aggregate:
+    - { get: source, resource: git-source-dev, trigger: true, passed: [unit-test-dev] }
+    - { get: bin, resource: binary-repo }
+  - task: merge-dev
+    params:
+      TERM: xterm
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          insecure_registries: ["10.234.24.211:443"]
+          repository: 10.234.24.211:443/alpine
+          tag: latest
+      inputs:
+      - name: source
+      - name: bin
+      outputs:
+      - name: peppermint-sparkles
+      run:
+        path: sh
+        args:
+        - -exec
+        - |
+          set -o errexit
+          set -o xtrace
+
+          TARGET="peppermint-sparkles"
+
+          # ensure 'peppermint-sparkles/build/bin' directory exists
+          mkdir -p ${TARGET}/build/bin
+
+          # merge source and binary into expected repo dir 'peppermint-sparkles'
+          mv source/* ${TARGET}/ && \
+            mv bin/* ${TARGET}/build/bin/
+
+  - put: pcf-dev
+    params:
+      REDIS_PLAN: shared-vm
+      REDIS_NAME: rainbow-dash-redis
+      MANIFEST: pcf/dev.manifest.yml
+
+# TST environment
+- name: unit-test-tst
+  plan:
+  - get: peppermint-sparkles
+    resource: git-source-test
+    trigger: true
+  - task: unit
+    file: peppermint-sparkles/ci/tasks/unit_test.yml
+
+- name: deploy-tst
+  serial: true
+  plan:
+  - aggregate:
+    - { get: source, resource: git-source-test, trigger: true, passed: [unit-test-tst] }
+    - { get: bin, resource: binary-repo }
+  - task: merge-tst
+    params:
+      TERM: xterm
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          insecure_registries: ["10.234.24.211:443"]
+          repository: 10.234.24.211:443/alpine
+          tag: latest
+      inputs:
+      - name: source
+      - name: bin
+      outputs:
+      - name: peppermint-sparkles
+      run:
+        path: sh
+        args:
+        - -exec
+        - |
+          set -o errexit
+          set -o xtrace
+
+          TARGET="peppermint-sparkles"
+
+          # ensure 'peppermint-sparkles/build/bin' directory exists
+          mkdir -p ${TARGET}/build/bin
+
+          # merge source and binary into expected repo dir 'peppermint-sparkles'
+          mv source/* ${TARGET}/ && \
+            mv bin/* ${TARGET}/build/bin/
+
+  - put: pcf-test
+    params:
+      REDIS_PLAN: shared-vm
+      REDIS_NAME: rainbow-dash-redis
+      MANIFEST: pcf/tst.manifest.yml
+
+# UAT environment
+- name: unit-test-uat
+  public: true
+  plan:
+  - get: peppermint-sparkles
+    resource: git-source-uat
+    trigger: true
+  - task: unit
+    file: peppermint-sparkles/ci/tasks/unit_test.yml
+
+- name: deploy-uat
+  public: true
+  serial: true
+  plan:
+  - get: peppermint-sparkles
+    resource: git-source-uat
+    trigger: true
+    passed: [unit-test-uat]
+  - get: peppermint-sparkles/build/bin
+    resource: binary-repo
+  - task: redis
+    file: peppermint-sparkles/ci/tasks/redis_service.yml
+    params:
+      TERM: xterm
+      CF_API: {{PCF_API}}
+      CF_USER: {{PCF_UAT_USER}}
+      CF_PASSWORD: {{PCF_UAT_PASS}}
+      CF_ORG: GSD-CAC-UAT
+      CF_SPACE: OA-MONTREAL-CAC-UAT
+      REDIS_PLAN: shared-vm
+      REDIS_NAME: rainbow-dash-redis
+  - put: pcf-uat
+    params: 
+      manifest: peppermint-sparkles/pcf/uat_manifest.yml
+
+# PROD environment
+- name: unit-test-prod
+  public: true
+  plan:
+  - get: peppermint-sparkles
+    resource: git-source-prod
+    trigger: true
+  - task: unit
+    file: peppermint-sparkles/ci/tasks/unit_test.yml
+
+- name: deploy-prod
+  public: true
+  serial: true
+  plan:
+  - get: peppermint-sparkles
+    resource: git-source-prod
+    trigger: false
+    passed: [unit-test-prod]
+  - get: peppermint-sparkles/build/bin
+    resource: binary-repo
+  - task: redis
+    file: peppermint-sparkles/ci/tasks/redis_service.yml
+    params:
+      TERM: xterm
+      CF_API: {{PCF_API}}
+      CF_USER: {{PCF_PROD_USER}}
+      CF_PASSWORD: {{PCF_PROD_PASS}}
+      CF_ORG: GSD-CAC-PROD
+      CF_SPACE: OA-MONTREAL-CAC-PROD
+      REDIS_PLAN: dedicated-vm
+      REDIS_NAME: rainbow-dash-redis
+  - put: pcf-prod
+    params: 
+      manifest: peppermint-sparkles/pcf/prod_manifest.yml
