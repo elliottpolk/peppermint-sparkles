@@ -147,7 +147,7 @@ jobs:
     - { get: source, resource: git-source-dev, trigger: true, passed: [unit-test-dev] }
     - { get: bin, resource: binary-repo }
   - task: merge-dev
-    file: ci/tasks/merge.yml
+    file: source/ci/tasks/merge.yml
     params:
       TERM: xterm
 
@@ -173,7 +173,7 @@ jobs:
     - { get: source, resource: git-source-test, trigger: true, passed: [unit-test-tst] }
     - { get: bin, resource: binary-repo }
   - task: merge-tst
-    file: ci/tasks/merge.yml
+    file: source/ci/tasks/merge.yml
     params:
       TERM: xterm
 
@@ -201,7 +201,7 @@ jobs:
     - { get: source, resource: git-source-uat, trigger: true, passed: [unit-test-uat] }
     - { get: bin, resource: binary-repo }
   - task: merge-uat
-    file: ci/tasks/merge.yml
+    file: source/ci/tasks/merge.yml
     params:
       TERM: xterm
 
