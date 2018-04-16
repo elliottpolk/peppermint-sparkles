@@ -85,6 +85,7 @@ resources:
     uri: {{PCF_HELPER_API}}
     method: POST
     ssl_verify: false
+    debug: true
     json:
       buildTeamName: "{BUILD_TEAM_NAME}"         #populated automatically
       buildId: "{BUILD_ID}"                      #populated automatically
