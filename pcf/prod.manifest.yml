@@ -1,0 +1,15 @@
+---
+
+applications:
+- name: peppermint-sparkles
+  buildpack: binary_buildpack
+  path: ../build/bin/
+  memory: 512M
+  routes:
+  - route: peppermint-sparkles.apps.cac.pcf.manulife.com
+  services:
+  - rainbow-dash-redis
+  command: |
+    tar jxf peppermint-sparkles*.tar.bz2 && \
+      ./psparkles -v && \
+      ./psparkles serve -dst redis
