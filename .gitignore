@@ -27,3 +27,5 @@ confgr.db
 .DS_store
 
 *-cred*.*
+*.credentials.*
+

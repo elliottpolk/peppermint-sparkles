@@ -145,18 +145,16 @@ jobs:
   serial: true
   plan:
   - aggregate:
-    - { get: gitfolder, resource: git-source-dev, trigger: true, passed: [unit-test-dev] }
+    - { get: source, resource: git-source-dev, trigger: true, passed: [unit-test-dev] }
     - { get: bin, resource: binary-repo }
   - task: merge-dev
-    file: gitfolder/ci/tasks/merge.yml
+    file: source/ci/tasks/merge.yml
     params:
       TERM: xterm
-
-  - put: pcf-dev
-    params:
       REDIS_PLAN: shared-vm
       REDIS_NAME: rainbow-dash-redis
       MANIFEST: pcf/dev.manifest.yml
+  - put: pcf-dev
 
 # TST environment
 - name: unit-test-tst

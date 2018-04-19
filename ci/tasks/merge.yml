@@ -6,7 +6,7 @@ image_resource:
     repository: 10.234.24.211:443/debian
     tag: latest
 inputs:
-- name: gitfolder 
+- name: source
 - name: bin
 outputs:
 - name: peppermint-sparkles
@@ -18,15 +18,11 @@ run:
     set -o errexit
     set -o xtrace
 
-    # TARGET="peppermint-sparkles"
+    TARGET="peppermint-sparkles"
 
     # ensure 'peppermint-sparkles/build/bin' directory exists
-    # mkdir -p ${TARGET}/build/bin
+    mkdir -p ${TARGET}/build/bin
 
     # merge source and binary into expected repo dir 'peppermint-sparkles'
-    # mv source/* ${TARGET}/ && \
-    # mv gitfolder/* ${TARGET}/ && \
-    #   mv bin/* ${TARGET}/build/bin/
-
-    mkdir -p gitfolder/build/bin && \
-      cp -rf bin/* gitfolder/build/bin/
+    mv source/* ${TARGET}/ && \
+      mv bin/* ${TARGET}/build/bin/
