@@ -58,9 +58,9 @@ jobs:
   serial: true
   plan:
   - get: peppermint-sparkles
-    resource: git-source-prod
+    resource: git-source
     trigger: false
-    passed: [unit-test-prod]
+    passed: [unit-test]
   - get: peppermint-sparkles/build/bin
     resource: binary-repo
   - task: redis
@@ -68,12 +68,12 @@ jobs:
     params:
       TERM: xterm
       CF_API: {{PCF_API}}
-      CF_USER: {{PCF_PROD_USER}}
-      CF_PASSWORD: {{PCF_PROD_PASS}}
+      CF_USER: {{PCF_USER}}
+      CF_PASSWORD: {{PCF_PASS}}
       CF_ORG: GSD-CAC-PROD
       CF_SPACE: OA-MONTREAL-CAC-PROD
       REDIS_PLAN: dedicated-vm
       REDIS_NAME: rainbow-dash-redis
-  - put: pcf-prod
+  - put: pcf
     params: 
       manifest: peppermint-sparkles/pcf/prod.manifest.yml

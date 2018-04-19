@@ -145,10 +145,10 @@ jobs:
   serial: true
   plan:
   - aggregate:
-    - { get: source, resource: git-source-dev, trigger: true, passed: [unit-test-dev] }
+    - { get: gitfolder, resource: git-source-dev, trigger: true, passed: [unit-test-dev] }
     - { get: bin, resource: binary-repo }
   - task: merge-dev
-    file: source/ci/tasks/merge.yml
+    file: gitfolder/ci/tasks/merge.yml
     params:
       TERM: xterm
 
