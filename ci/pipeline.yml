@@ -32,13 +32,6 @@ resource_types:
     insecure_registries: ["10.234.24.211:443"]
     repository: 10.234.24.211:443/artifactory-resource
 
-- name: pcf-api-helper
-  type: docker-image
-  source:
-    insecure_registries: ["10.234.24.211:443"]
-    repository: 10.234.24.211:443/http-api-resource
-    tag: latest
-
 resources:
 - name: binary-repo
   type: artifactory
@@ -80,56 +73,34 @@ resources:
 
 # pcf resources
 - name: pcf-dev
-  type: pcf-api-helper
+  type: cf
   source:
-    uri: {{PCF_HELPER_API}}
-    method: POST
-    ssl_verify: false
-    debug: true
-    json:
-      buildTeamName: "{BUILD_TEAM_NAME}"         #populated automatically
-      buildId: "{BUILD_ID}"                      #populated automatically
-      buildName: "{BUILD_NAME}"                  #populated automatically
-      buildJobName: "{BUILD_JOB_NAME}"           #populated automatically
-      buildPipelineName: "{BUILD_PIPELINE_NAME}" #populated automatically
-      org: "GSD-CAC-DEV"
-      deploy_script: {{DEPLOY_SCRIPT}}
-      division: {{DIVISION}}
-      buildTaskName: "merge-dev"
+    api: {{PCF_API}}
+    username: {{PCF_USER}}
+    password: {{PCF_PASS}}
+    organization: GSD-CAC-DEV
+    space: OA-MONTREAL-CAC-DEV
+    skip_cert_check: true
 
-- name: pcf-test
-  type: pcf-api-helper
+- name: pcf-tst
+  type: cf
   source:
-    uri: {{PCF_HELPER_API}}
-    method: POST
-    ssl_verify: false
-    json:
-      buildTeamName: "{BUILD_TEAM_NAME}"         #populated automatically
-      buildId: "{BUILD_ID}"                      #populated automatically
-      buildName: "{BUILD_NAME}"                  #populated automatically
-      buildJobName: "{BUILD_JOB_NAME}"           #populated automatically
-      buildPipelineName: "{BUILD_PIPELINE_NAME}" #populated automatically
-      org: "GSD-CAC-TST"
-      deploy_script: {{DEPLOY_SCRIPT}}
-      division: {{DIVISION}}
-      buildTaskName: "merge-tst"
+    api: {{PCF_API}}
+    username: {{PCF_USER}}
+    password: {{PCF_PASS}}
+    organization: GSD-CAC-TST
+    space: OA-MONTREAL-CAC-TST
+    skip_cert_check: true
 
 - name: pcf-uat
-  type: pcf-api-helper
+  type: cf
   source:
-    uri: {{PCF_HELPER_API}}
-    method: POST
-    ssl_verify: false
-    json:
-      buildTeamName: "{BUILD_TEAM_NAME}"         #populated automatically
-      buildId: "{BUILD_ID}"                      #populated automatically
-      buildName: "{BUILD_NAME}"                  #populated automatically
-      buildJobName: "{BUILD_JOB_NAME}"           #populated automatically
-      buildPipelineName: "{BUILD_PIPELINE_NAME}" #populated automatically
-      org: "GSD-CAC-UAT"
-      deploy_script: {{DEPLOY_SCRIPT}}
-      division: {{DIVISION}}
-      buildTaskName: "merge-uat"
+    api: {{PCF_API}}
+    username: {{PCF_USER}}
+    password: {{PCF_PASS}}
+    organization: GSD-CAC-UAT
+    space: OA-MONTREAL-CAC-UAT
+    skip_cert_check: true
 
 jobs:
 # DEV environment
@@ -144,17 +115,26 @@ jobs:
 - name: deploy-dev
   serial: true
   plan:
-  - aggregate:
-    - { get: source, resource: git-source-dev, trigger: true, passed: [unit-test-dev] }
-    - { get: bin, resource: binary-repo }
-  - task: merge-dev
-    file: source/ci/tasks/merge.yml
+  - get: peppermint-sparkles
+    resource: git-source-dev
+    trigger: true
+    passed: [unit-test-dev]
+  - get: peppermint-sparkles/build/bin
+    resource: binary-repo
+  - task: redis
+    file: peppermint-sparkles/ci/tasks/redis_service.yml
     params:
       TERM: xterm
+      CF_API: {{PCF_API}}
+      CF_USER: {{PCF_USER}}
+      CF_PASSWORD: {{PCF_PASS}}
+      CF_ORG: GSD-CAC-DEV
+      CF_SPACE: OA-MONTREAL-CAC-DEV
       REDIS_PLAN: shared-vm
       REDIS_NAME: rainbow-dash-redis
-      MANIFEST: pcf/dev.manifest.yml
   - put: pcf-dev
+    params:
+      manifest: peppermint-sparkles/pcf/dev.manifest.yml
 
 # TST environment
 - name: unit-test-tst
@@ -168,19 +148,26 @@ jobs:
 - name: deploy-tst
   serial: true
   plan:
-  - aggregate:
-    - { get: source, resource: git-source-test, trigger: true, passed: [unit-test-tst] }
-    - { get: bin, resource: binary-repo }
-  - task: merge-tst
-    file: source/ci/tasks/merge.yml
+  - get: peppermint-sparkles
+    resource: git-source-test
+    trigger: true
+    passed: [unit-test-tst]
+  - get: peppermint-sparkles/build/bin
+    resource: binary-repo
+  - task: redis
+    file: peppermint-sparkles/ci/tasks/redis_service.yml
     params:
       TERM: xterm
-
-  - put: pcf-test
-    params:
+      CF_API: {{PCF_API}}
+      CF_USER: {{PCF_USER}}
+      CF_PASSWORD: {{PCF_PASS}}
+      CF_ORG: GSD-CAC-TST
+      CF_SPACE: OA-MONTREAL-CAC-TST
       REDIS_PLAN: shared-vm
       REDIS_NAME: rainbow-dash-redis
-      MANIFEST: pcf/tst.manifest.yml
+  - put: pcf-tst
+    params:
+      manifest: peppermint-sparkles/pcf/tst.manifest.yml
 
 # UAT environment
 - name: unit-test-uat
@@ -196,17 +183,23 @@ jobs:
   public: true
   serial: true
   plan:
-  - aggregate:
-    - { get: source, resource: git-source-uat, trigger: true, passed: [unit-test-uat] }
-    - { get: bin, resource: binary-repo }
-  - task: merge-uat
-    file: source/ci/tasks/merge.yml
+  - get: peppermint-sparkles
+    resource: git-source-uat
+    trigger: true
+    passed: [unit-test-uat]
+  - get: peppermint-sparkles/build/bin
+    resource: binary-repo
+  - task: redis
+    file: peppermint-sparkles/ci/tasks/redis_service.yml
     params:
       TERM: xterm
-
-  - put: pcf-uat
-    params:
+      CF_API: {{PCF_API}}
+      CF_USER: {{PCF_USER}}
+      CF_PASSWORD: {{PCF_PASS}}
+      CF_ORG: GSD-CAC-UAT
+      CF_SPACE: OA-MONTREAL-CAC-UAT
       REDIS_PLAN: shared-vm
       REDIS_NAME: rainbow-dash-redis
-      MANIFEST: pcf/uat.manifest.yml
-
+  - put: pcf-uat
+    params:
+      manifest: peppermint-sparkles/pcf/uat.manifest.yml
