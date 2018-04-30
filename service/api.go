@@ -248,7 +248,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := ds.Remove(id); err != nil {
-			log.Errorf("%v: unable to remove secret for id %s", err, id)
+			log.Errorf(err, "unable to remove secret for id %s", id)
 			respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to remove secret")
 			return
 		}

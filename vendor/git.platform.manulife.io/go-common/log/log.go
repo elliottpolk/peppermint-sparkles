@@ -119,9 +119,9 @@ func Error(err error, message string) {
 	logger.Error(errors.Wrap(err, message))
 }
 
-func Errorf(format string, args ...interface{}) {
+func Errorf(err error, format string, args ...interface{}) {
 	logger.Out = os.Stderr
-	logger.Errorf(format, args...)
+	logger.Errorf("%v: "+format, []interface{}{err, args}...)
 }
 
 func Errorln(err error, message string) {

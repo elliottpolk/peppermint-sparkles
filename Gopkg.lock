@@ -2,11 +2,11 @@
 
 
 [[projects]]
+  branch = "master"
   name = "git.platform.manulife.io/go-common/log"
   packages = ["."]
-  revision = "4587ffe29d035c1f689f1bc46c18bbfb3f0899fc"
+  revision = "fdf6985807b31e126dde60b4e06622193635a91d"
   source = "ssh://git@git.platform.manulife.io:2222/go-common/log.git"
-  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -19,14 +19,14 @@
   branch = "master"
   name = "git.platform.manulife.io/go-common/respond"
   packages = ["."]
-  revision = "9a24f7fc45ddf0e209c1375b72af82d3a27d4296"
+  revision = "720942e8fb1f1b671c83632506086945778ea0cc"
   source = "ssh://git@git.platform.manulife.io:2222/go-common/respond.git"
 
 [[projects]]
   name = "github.com/Sirupsen/logrus"
   packages = ["."]
-  revision = "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
-  version = "v1.0.4"
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
 
 [[projects]]
   name = "github.com/coreos/bbolt"
@@ -46,8 +46,8 @@
     "internal/singleflight",
     "internal/util"
   ]
-  revision = "68362cfda1eeb3a69316e7bc00169a9a8de4823a"
-  version = "v6.9.2"
+  revision = "877867d2845fbaf86798befe410b6ceb6f5c29a3"
+  version = "v6.10.2"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -68,7 +68,7 @@
     "openpgp/s2k",
     "ssh/terminal"
   ]
-  revision = "85f98707c97e11569271e4d9b3d397e079c4f4d0"
+  revision = "db7d12313a59cd5b727192a287195e2cdfa40049"
 
 [[projects]]
   branch = "master"
@@ -77,7 +77,7 @@
     "unix",
     "windows"
   ]
-  revision = "dd2ff4accc098aceecb86b36eaa7829b2a17b1c9"
+  revision = "f67ecc163a74fbeea4cb1db0a101dcd07201464a"
 
 [[projects]]
   branch = "v2"
