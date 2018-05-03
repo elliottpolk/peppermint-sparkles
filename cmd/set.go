@@ -112,7 +112,11 @@ func Set(context *cli.Context) error {
 		return cli.Exit(errors.Wrap(err, "unable to retrieve current, logged-in user"), 1)
 	}
 
-	params := url.Values{service.UserParam: []string{u.Username}}
+	params := url.Values{
+		service.UserParam: []string{u.Username},
+		service.AppParam:  []string{s.App},
+		service.EnvParam:  []string{s.Env},
+	}
 
 	res, err := send(asURL(addr, service.PathSecrets, params.Encode()), string(out))
 	if err != nil {

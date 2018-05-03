@@ -24,21 +24,27 @@ type Datastore struct {
 }
 
 func Open(opts *redis.Options) (*Datastore, error) {
+	ds := &Datastore{}
+
 	opts.DB = 0 //	ensure that is uses the same (default) DB every time
-	ds := &Datastore{client: redis.NewClient(opts)}
+	ds.client = redis.NewClient(opts)
+
+	//	ensure a valid connection prior to returning
+	cr, err := ds.client.Ping().Result()
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to ping redis datastore")
+	}
+	log.Debugf("client ping result %s", cr)
 
 	opts.DB = 1 //	ensure that is uses the same (default) historical DB every time
 	ds.historical = redis.NewClient(opts)
 
-	//	ensure a valid connection prior to returning
-	if _, err := ds.client.Ping().Result(); err != nil {
-		return nil, errors.Wrap(err, "unable to ping redis datastore")
-	}
-
 	//	ensure a valid connection to the historical store prior to returning
-	if _, err := ds.historical.Ping().Result(); err != nil {
+	hr, err := ds.historical.Ping().Result()
+	if err != nil {
 		return nil, errors.Wrap(err, "unable to ping historical redis datastore")
 	}
+	log.Debugf("historical ping result %s", hr)
 
 	return ds, nil
 }
@@ -48,6 +54,11 @@ func (ds *Datastore) Close() error {
 	if ds.client != nil {
 		return ds.client.Close()
 	}
+
+	if ds.historical != nil {
+		return ds.historical.Close()
+	}
+
 	return nil
 }
 
