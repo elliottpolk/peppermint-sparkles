@@ -32,6 +32,16 @@ func TestOpen(t *testing.T) {
 	if got := ds.Get(key); want != got {
 		t.Errorf("\nwant %s\ngot %s\n", want, got)
 	}
+
+	if err := ds.AddHistory(want); err != nil {
+		t.Fatal(err)
+	}
+
+	//	there should only be 1 historical item
+	hkeys := ds.historicalKeys()
+	if got := ds.get(historical, hkeys[0]); want != got {
+		t.Errorf("\nwant %s\ngot %s\n", want, got)
+	}
 }
 
 func TestClose(t *testing.T) {
