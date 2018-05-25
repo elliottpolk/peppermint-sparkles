@@ -34,15 +34,17 @@ func Open(name string, opts *bolt.Options) (*Datastore, error) {
 
 	ds := &Datastore{db: db}
 
-	//  ensure that the bucket exists
-	err = ds.db.Update(func(tx *bolt.Tx) error {
-		if _, err := tx.CreateBucketIfNotExists([]byte(bucket)); err != nil {
-			return err
+	//  ensure that the buckets exist
+	for _, b := range []string{bucket, historical} {
+		err = ds.db.Update(func(tx *bolt.Tx) error {
+			if _, err := tx.CreateBucketIfNotExists([]byte(b)); err != nil {
+				return err
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to ensure creation of bucket %s", b)
 		}
-		return nil
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to ensure creation of bucket")
 	}
 
 	return ds, nil

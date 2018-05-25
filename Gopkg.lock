@@ -68,7 +68,7 @@
     "openpgp/s2k",
     "ssh/terminal"
   ]
-  revision = "db7d12313a59cd5b727192a287195e2cdfa40049"
+  revision = "76a954637dfa3223c13edb4529f981f0d62cfa26"
 
 [[projects]]
   branch = "master"
@@ -77,7 +77,7 @@
     "unix",
     "windows"
   ]
-  revision = "f67ecc163a74fbeea4cb1db0a101dcd07201464a"
+  revision = "78d5f264b493f125018180c204871ecf58a2dce1"
 
 [[projects]]
   branch = "v2"
