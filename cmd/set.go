@@ -126,19 +126,19 @@ func Set(context *cli.Context) error {
 	//	convert from and back to JSON string to provide "prettier" formatting on print
 	ugly := &models.Secret{}
 	if err := json.Unmarshal([]byte(res), &ugly); err != nil {
-		log.Error(err, "unable to parse in JSON string for pretty output")
+		log.Error(tag, err, "unable to parse in JSON string for pretty output")
 	}
 
 	pretty, err := json.MarshalIndent(ugly, "", "   ")
 	if err != nil {
-		log.Error(err, "unable to marshal secret back to (prettier) JSON string")
+		log.Error(tag, err, "unable to marshal secret back to (prettier) JSON string")
 	}
 
 	//	ensure to display encryption token, since it may have been generated
 	if encrypt {
-		log.Infof("token: %s", c.Token)
+		log.Infof(tag, "token: %s", c.Token)
 	}
-	log.Infof("secret:\n%s", string(pretty))
+	log.Infof(tag, "secret:\n%s", string(pretty))
 
 	return nil
 }

@@ -2,11 +2,11 @@
 
 
 [[projects]]
-  branch = "master"
   name = "git.platform.manulife.io/go-common/log"
   packages = ["."]
-  revision = "fdf6985807b31e126dde60b4e06622193635a91d"
+  revision = "397174603a7048d3d4e35cef59a22da59d4eb1ee"
   source = "ssh://git@git.platform.manulife.io:2222/go-common/log.git"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -19,7 +19,7 @@
   branch = "master"
   name = "git.platform.manulife.io/go-common/respond"
   packages = ["."]
-  revision = "720942e8fb1f1b671c83632506086945778ea0cc"
+  revision = "2efd3d37028cad52236a1fa675d9392892bb9a7b"
   source = "ssh://git@git.platform.manulife.io:2222/go-common/respond.git"
 
 [[projects]]
@@ -46,8 +46,8 @@
     "internal/singleflight",
     "internal/util"
   ]
-  revision = "877867d2845fbaf86798befe410b6ceb6f5c29a3"
-  version = "v6.10.2"
+  revision = "83fb42932f6145ce52df09860384a4653d2d332a"
+  version = "v6.12.0"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -68,7 +68,7 @@
     "openpgp/s2k",
     "ssh/terminal"
   ]
-  revision = "76a954637dfa3223c13edb4529f981f0d62cfa26"
+  revision = "a2144134853fc9a27a7b1e3eb4f19f1a76df13c9"
 
 [[projects]]
   branch = "master"
@@ -77,7 +77,7 @@
     "unix",
     "windows"
   ]
-  revision = "78d5f264b493f125018180c204871ecf58a2dce1"
+  revision = "ac767d655b305d4e9612f5f6e33120b9176c4ad4"
 
 [[projects]]
   branch = "v2"

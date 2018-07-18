@@ -121,7 +121,7 @@ func Serve(context *cli.Context) error {
 	}
 
 	defer ds.Close()
-	log.Debug("datastore opened")
+	log.Debug(tag, "datastore opened")
 
 	mux := http.NewServeMux()
 
@@ -136,25 +136,25 @@ func Serve(context *cli.Context) error {
 		}
 
 		if _, err := os.Stat(cert); err != nil {
-			log.Error(err, "unable to access TLS cert file")
+			log.Error(tag, err, "unable to access TLS cert file")
 			return
 		}
 
 		if _, err := os.Stat(key); err != nil {
-			log.Error(err, "unable to access TLS key file")
+			log.Error(tag, err, "unable to access TLS key file")
 			return
 		}
 
 		addr := fmt.Sprintf(":%s", context.String(TlsListenPortFlag.Names()[0]))
 
-		log.Debug("starting HTTPS listener")
-		log.Fatal(http.ListenAndServeTLS(addr, cert, key, mux))
+		log.Debug(tag, "starting HTTPS listener")
+		log.Fatal(tag, http.ListenAndServeTLS(addr, cert, key, mux))
 	}()
 
-	log.Debug("starting HTTP listener")
+	log.Debug(tag, "starting HTTP listener")
 
 	addr := fmt.Sprintf(":%s", context.String(StdListenPortFlag.Names()[0]))
-	log.Fatal(http.ListenAndServe(addr, mux))
+	log.Fatal(tag, http.ListenAndServe(addr, mux))
 
 	return nil
 }

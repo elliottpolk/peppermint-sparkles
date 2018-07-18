@@ -19,6 +19,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const tag string = "manulife.oa-montreal.peppermint-sparkles.cmd"
+
 var (
 	schemeExp = regexp.MustCompile(`^(?P<scheme>http(s)?):\/\/`)
 

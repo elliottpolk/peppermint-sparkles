@@ -9,6 +9,8 @@ import (
 	"net/http"
 )
 
+const tag string = "go-common.respond"
+
 func WithDefaultOk(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/plain; charset=us-ascii")
 	fmt.Fprintln(w, "ok")

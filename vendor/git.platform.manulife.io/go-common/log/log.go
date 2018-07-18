@@ -19,10 +19,18 @@ const (
 	EnvLevel  string = "LOGGER_LEVEL"
 )
 
-var logger *logrus.Logger
+var (
+	logger  *logrus.Logger
+	version string = "0.0.0"
+)
 
-func init() {
-	logger = logrus.New()
+func Init(ver string) {
+	version = ver
+	logger = &logrus.Logger{
+		Out:       os.Stdout,
+		Formatter: formatter(""),
+		Level:     level(""),
+	}
 
 	//	Run a process to adjust the logging parameters if the environment variables o
 	//	are updated. This allows for immediate logging changes without restarting
@@ -52,11 +60,17 @@ func init() {
 
 func formatter(key string) logrus.Formatter {
 	switch key {
-	case "json":
-		return &logrus.JSONFormatter{}
+	case "text":
+		return &logrus.TextFormatter{}
 
 	default:
-		return &logrus.TextFormatter{}
+		return &logrus.JSONFormatter{
+			FieldMap: logrus.FieldMap{
+				logrus.FieldKeyTime:  "@timestamp",
+				logrus.FieldKeyLevel: "level",
+				logrus.FieldKeyMsg:   "message",
+			},
+		}
 	}
 }
 
@@ -79,67 +93,93 @@ func level(key string) logrus.Level {
 	}
 }
 
-func Info(args ...interface{}) {
-	logger.Out = os.Stdout
-	logger.Info(args...)
+func Info(tag string, args ...interface{}) {
+	logger.WithFields(logrus.Fields{
+		"@version":    version,
+		"logger_name": tag,
+	}).Info(args...)
 }
 
-func Infof(format string, args ...interface{}) {
-	logger.Out = os.Stdout
-	logger.Infof(format, args...)
+func Infof(tag string, format string, args ...interface{}) {
+	logger.WithFields(logrus.Fields{
+		"@version":    version,
+		"logger_name": tag,
+	}).Infof(format, args...)
 }
 
-func Infoln(args ...interface{}) {
-	logger.Out = os.Stdout
-	logger.Println(args...)
+func Infoln(tag string, args ...interface{}) {
+	logger.WithFields(logrus.Fields{
+		"@version":    version,
+		"logger_name": tag,
+	}).Println(args...)
 }
 
-func Debug(args ...interface{}) {
-	logger.Out = os.Stdout
-	logger.Debug(args...)
+func Debug(tag string, args ...interface{}) {
+	logger.WithFields(logrus.Fields{
+		"@version":    version,
+		"logger_name": tag,
+	}).Debug(args...)
 }
 
-func Debugf(format string, args ...interface{}) {
-	logger.Out = os.Stdout
-	logger.Debugf(format, args...)
+func Debugf(tag string, format string, args ...interface{}) {
+	logger.WithFields(logrus.Fields{
+		"@version":    version,
+		"logger_name": tag,
+	}).Debugf(format, args...)
 }
 
-func Debugln(args ...interface{}) {
-	logger.Out = os.Stdout
-	logger.Debugln(args...)
+func Debugln(tag string, args ...interface{}) {
+	logger.WithFields(logrus.Fields{
+		"@version":    version,
+		"logger_name": tag,
+	}).Debugln(args...)
 }
 
-func NewError(format string, args ...interface{}) {
-	logger.Out = os.Stderr
-	logger.Errorf(format, args...)
+func NewError(tag string, format string, args ...interface{}) {
+	logger.WithFields(logrus.Fields{
+		"@version":    version,
+		"logger_name": tag,
+	}).Errorf(format, args...)
 }
 
-func Error(err error, message string) {
-	logger.Out = os.Stderr
-	logger.Error(errors.Wrap(err, message))
+func Error(tag string, err error, message string) {
+	logger.WithFields(logrus.Fields{
+		"@version":    version,
+		"logger_name": tag,
+	}).Error(errors.Wrap(err, message))
 }
 
-func Errorf(err error, format string, args ...interface{}) {
-	logger.Out = os.Stderr
-	logger.Errorf("%v: "+format, []interface{}{err, args}...)
+func Errorf(tag string, err error, format string, args ...interface{}) {
+	logger.WithFields(logrus.Fields{
+		"@version":    version,
+		"logger_name": tag,
+	}).Errorf("%v: "+format, []interface{}{err, args}...)
 }
 
-func Errorln(err error, message string) {
-	logger.Out = os.Stderr
-	logger.Errorln(errors.Wrap(err, message))
+func Errorln(tag string, err error, message string) {
+	logger.WithFields(logrus.Fields{
+		"@version":    version,
+		"logger_name": tag,
+	}).Errorln(errors.Wrap(err, message))
 }
 
-func Fatal(args ...interface{}) {
-	logger.Out = os.Stderr
-	logger.Panic(args...)
+func Fatal(tag string, args ...interface{}) {
+	logger.WithFields(logrus.Fields{
+		"@version":    version,
+		"logger_name": tag,
+	}).Panic(args...)
 }
 
-func Fatalf(format string, args ...interface{}) {
-	logger.Out = os.Stderr
-	logger.Panicf(format, args...)
+func Fatalf(tag string, format string, args ...interface{}) {
+	logger.WithFields(logrus.Fields{
+		"@version":    version,
+		"logger_name": tag,
+	}).Panicf(format, args...)
 }
 
-func Fatalln(args ...interface{}) {
-	logger.Out = os.Stderr
-	logger.Panicln(args...)
+func Fatalln(tag string, args ...interface{}) {
+	logger.WithFields(logrus.Fields{
+		"@version":    version,
+		"logger_name": tag,
+	}).Panicln(args...)
 }

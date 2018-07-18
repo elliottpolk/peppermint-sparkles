@@ -14,6 +14,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const tag string = "manulife.oa-montreal.peppermint-sparkles.models"
+
 type Secret struct {
 	Id      string `json:"id,omitempty"`
 	App     string `json:"app_name"`
@@ -52,7 +54,7 @@ func (s *Secret) MustString() string {
 func (s *Secret) NewId() string {
 	buf := make([]byte, 1024)
 	if _, err := rand.Read(buf); err != nil {
-		log.Error(err, "unable to read in random data for id generation")
+		log.Error(tag, err, "unable to read in random data for id generation")
 	}
 
 	//	FIXME ... should really allow for a retry on the random read
