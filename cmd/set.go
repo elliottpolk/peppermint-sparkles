@@ -16,6 +16,7 @@ import (
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto/pgp"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/models"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
+	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
 
 	"github.com/pkg/errors"
 	"gopkg.in/urfave/cli.v2"
@@ -101,6 +102,9 @@ func Set(context *cli.Context) error {
 		s.Content = string(cypher)
 	}
 
+	//	generate and set a uuid for uniqueness
+	s.Id = uuid.GetV4()
+
 	//	convert to JSON string for sending to secrets service
 	out, err := json.Marshal(s)
 	if err != nil {
@@ -116,6 +120,7 @@ func Set(context *cli.Context) error {
 		service.UserParam: []string{u.Username},
 		service.AppParam:  []string{s.App},
 		service.EnvParam:  []string{s.Env},
+		service.IdParam:   []string{s.Id},
 	}
 
 	res, err := send(asURL(addr, service.PathSecrets, params.Encode()), string(out))

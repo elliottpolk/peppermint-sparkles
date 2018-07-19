@@ -43,6 +43,7 @@ func main() {
 					&cmd.SecretFileFlag,
 					&cmd.EncryptFlag,
 					&cmd.TokenFlag,
+					&cmd.SecretIdFlag,
 				},
 				Usage:  "adds or updates a secret",
 				Action: cmd.Set,

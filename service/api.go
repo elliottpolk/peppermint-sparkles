@@ -29,6 +29,7 @@ const (
 	AppParam  string = "app_name"
 	EnvParam  string = "env"
 	UserParam string = "username"
+	IdParam   string = "uuid"
 )
 
 var idExp *regexp.Regexp = regexp.MustCompile(`secrets/(?P<id>[a-zA-Z\d]+)(\/)?$`)
