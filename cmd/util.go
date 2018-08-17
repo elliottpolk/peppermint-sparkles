@@ -1,7 +1,3 @@
-// Created by Elliott Polk on 01/02/2018
-// Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/peppermint-sparkles/cmd/util.go
-//
 package cmd
 
 import (
@@ -19,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const tag string = "manulife.oa-montreal.peppermint-sparkles.cmd"
+const tag string = "peppermint-sparkles.cmd"
 
 var (
 	schemeExp = regexp.MustCompile(`^(?P<scheme>http(s)?):\/\/`)

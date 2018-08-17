@@ -1,9 +1,5 @@
 //  +build integration
 
-// Created by Elliott Polk on 23/01/2018
-// Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/peppermint-sparkles/backend/redis/integration_test.go
-//
 package redis
 
 import (
@@ -13,8 +9,14 @@ import (
 	"testing"
 	"time"
 
+	"git.platform.manulife.io/go-common/log"
+
 	"github.com/go-redis/redis"
 )
+
+func init() {
+	log.InitTester()
+}
 
 func getPort() string {
 	var min, max int64 = 2000, 9999

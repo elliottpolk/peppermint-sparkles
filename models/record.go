@@ -1,6 +1,3 @@
-// Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/peppermint-sparkles/models/record.go
-//
 package models
 
 import (
@@ -33,6 +30,10 @@ func ParseRecord(raw string) (*Record, error) {
 		return nil, errors.Wrap(err, "unable to parse raw record")
 	}
 	return r, nil
+}
+
+func (r *Record) Exists(in backend.Datastore) bool {
+	return len(in.Get(r.Secret.Id)) > 0
 }
 
 func (r *Record) Write(where backend.Datastore) error {

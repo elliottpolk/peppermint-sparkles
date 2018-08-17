@@ -1,7 +1,3 @@
-// Created by Elliott Polk on 23/01/2018
-// Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/peppermint-sparkles/main.go
-//
 package cmd
 
 import (
@@ -103,7 +99,7 @@ func Set(context *cli.Context) error {
 	}
 
 	//	generate and set a uuid for uniqueness
-	s.Id = uuid.GetV4()
+	id := uuid.GetV4()
 
 	//	convert to JSON string for sending to secrets service
 	out, err := json.Marshal(s)
@@ -120,7 +116,7 @@ func Set(context *cli.Context) error {
 		service.UserParam: []string{u.Username},
 		service.AppParam:  []string{s.App},
 		service.EnvParam:  []string{s.Env},
-		service.IdParam:   []string{s.Id},
+		service.IdParam:   []string{id},
 	}
 
 	res, err := send(asURL(addr, service.PathSecrets, params.Encode()), string(out))
@@ -143,6 +139,7 @@ func Set(context *cli.Context) error {
 	if encrypt {
 		log.Infof(tag, "token: %s", c.Token)
 	}
+	log.Infof(tag, "uuid:  %s", id)
 	log.Infof(tag, "secret:\n%s", string(pretty))
 
 	return nil

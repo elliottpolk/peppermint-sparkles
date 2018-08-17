@@ -119,9 +119,6 @@ jobs:
 ```
 
 ```go
-// Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/super-dope/config/remote.go
-//
 package config
 
 import (

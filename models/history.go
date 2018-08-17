@@ -1,6 +1,3 @@
-// Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/peppermint-sparkles/models/history.go
-//
 package models
 
 import (
