@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -20,6 +21,21 @@ import (
 
 func init() {
 	log.InitTester()
+}
+
+func freeport() int {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		panic(err)
+	}
+
+	listener, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		panic(err)
+	}
+	defer listener.Close()
+
+	return listener.Addr().(*net.TCPAddr).Port
 }
 
 func TestGetId(t *testing.T) {
@@ -52,7 +68,7 @@ func TestGetId(t *testing.T) {
 }
 
 func TestPost(t *testing.T) {
-	const port string = "6000"
+	port := freeport()
 
 	sample := fmt.Sprintf(`{"id":"%s","app_name":"dummy","env":"test","content":"notSuperS3cret"}`, uuid.GetV4())
 	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
@@ -76,12 +92,12 @@ func TestPost(t *testing.T) {
 		mux = Handle(mux, &Handler{Backend: ds})
 
 		wg.Done()
-		t.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), mux))
+		t.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), mux))
 	}(ds)
 
 	wg.Wait()
 
-	res, err := http.Post(fmt.Sprintf("http://localhost:%s/api/v2/secrets?%s=tester", port, UserParam), "application/json", strings.NewReader(sample))
+	res, err := http.Post(fmt.Sprintf("http://localhost:%d/api/v2/secrets?%s=tester", port, UserParam), "application/json", strings.NewReader(sample))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +118,7 @@ func TestPost(t *testing.T) {
 }
 
 func TestInvalidIdPost(t *testing.T) {
-	const port string = "6001"
+	port := freeport()
 
 	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
@@ -124,7 +140,7 @@ func TestInvalidIdPost(t *testing.T) {
 		mux = Handle(mux, &Handler{Backend: ds})
 
 		wg.Done()
-		t.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), mux))
+		t.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), mux))
 	}(ds)
 
 	wg.Wait()
@@ -158,7 +174,7 @@ func TestInvalidIdPost(t *testing.T) {
 	}
 
 	for _, s := range samples {
-		res, err := http.Post(fmt.Sprintf("http://localhost:%s/api/v2/secrets?%s=tester", port, UserParam), "application/json", strings.NewReader(s.value))
+		res, err := http.Post(fmt.Sprintf("http://localhost:%d/api/v2/secrets?%s=tester", port, UserParam), "application/json", strings.NewReader(s.value))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -176,7 +192,8 @@ func TestInvalidIdPost(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	const port string = "6002"
+	port := freeport()
+
 	sample := fmt.Sprintf(`{"id":"%s","app_name":"dummy","env":"test","content":"notSuperS3cret"}`, uuid.GetV4())
 	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
 
@@ -218,12 +235,12 @@ func TestGet(t *testing.T) {
 		mux = Handle(mux, &Handler{Backend: ds})
 
 		wg.Done()
-		t.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), mux))
+		t.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), mux))
 	}(ds)
 
 	wg.Wait()
 
-	res, err := http.Get(fmt.Sprintf("http://localhost:%s/api/v2/secrets/%s?%s=%s&%s=%s", port, src.Id, AppParam, src.App, EnvParam, src.Env))
+	res, err := http.Get(fmt.Sprintf("http://localhost:%d/api/v2/secrets/%s?%s=%s&%s=%s", port, src.Id, AppParam, src.App, EnvParam, src.Env))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +266,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestInvalidGet(t *testing.T) {
-	const port string = "6003"
+	port := freeport()
 
 	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
@@ -291,7 +308,7 @@ func TestInvalidGet(t *testing.T) {
 		mux = Handle(mux, &Handler{Backend: ds})
 
 		wg.Done()
-		t.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), mux))
+		t.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), mux))
 	}(ds)
 
 	wg.Wait()
@@ -306,19 +323,19 @@ func TestInvalidGet(t *testing.T) {
 	samples := []*sample{
 		&sample{
 			name:    "invalid_id",
-			from:    fmt.Sprintf("http://localhost:%s/api/v2/secrets/%s?%s=%s&%s=%s", port, uuid.GetV4(), AppParam, src.App, EnvParam, src.Env),
+			from:    fmt.Sprintf("http://localhost:%d/api/v2/secrets/%s?%s=%s&%s=%s", port, uuid.GetV4(), AppParam, src.App, EnvParam, src.Env),
 			code:    http.StatusNotFound,
 			message: "file not found",
 		},
 		&sample{
 			name:    "invalid_app_name",
-			from:    fmt.Sprintf("http://localhost:%s/api/v2/secrets/%s?%s=%s&%s=%s", port, src.Id, AppParam, "flerp", EnvParam, src.Env),
+			from:    fmt.Sprintf("http://localhost:%d/api/v2/secrets/%s?%s=%s&%s=%s", port, src.Id, AppParam, "flerp", EnvParam, src.Env),
 			code:    http.StatusBadRequest,
 			message: "app ID and name are invalid",
 		},
 		&sample{
 			name:    "invalid_app_env",
-			from:    fmt.Sprintf("http://localhost:%s/api/v2/secrets/%s?%s=%s&%s=%s", port, src.Id, AppParam, src.App, EnvParam, "PROD"),
+			from:    fmt.Sprintf("http://localhost:%d/api/v2/secrets/%s?%s=%s&%s=%s", port, src.Id, AppParam, src.App, EnvParam, "PROD"),
 			code:    http.StatusBadRequest,
 			message: "app ID and environment are invalid",
 		},
