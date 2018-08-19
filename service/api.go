@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 
 	"git.platform.manulife.io/go-common/log"
@@ -50,26 +49,12 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ds, params := h.Backend, r.URL.Query()
-
 	if !matched {
-		//	if neither the ID nor app name and environment combination are provided,
-		//	there is really no way to retrieve a secret
-		app, env := params.Get(AppParam), params.Get(EnvParam)
-		if len(app) < 1 || len(env) < 1 {
-			respond.WithErrorMessage(w, http.StatusBadRequest, "a valid ID or %s and %s must be specified", AppParam, EnvParam)
-			return
-		}
-
-		for _, k := range ds.Keys() {
-			if strings.HasSuffix(k, backend.KeySuffix(app, env)) {
-				id = k
-				break
-			}
-		}
-		log.Debugf(tag, "attempted to find an ID for app %s and env %s: %s", app, env, id)
+		respond.WithErrorMessage(w, http.StatusBadRequest, "a valid ID must be specified")
+		return
 	}
 
+	ds := h.Backend
 	raw := ds.Get(id)
 	if len(raw) < 1 {
 		respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
@@ -122,6 +107,16 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 
 	if len(s.Id) < 1 {
 		respond.WithErrorMessage(w, http.StatusBadRequest, "an ID for the secret must be specified")
+		return
+	}
+
+	if len(s.App) < 1 {
+		respond.WithErrorMessage(w, http.StatusBadRequest, "an app name for the secret must be specified")
+		return
+	}
+
+	if len(s.Env) < 1 {
+		respond.WithErrorMessage(w, http.StatusBadRequest, "an environment for the secret must be specified")
 		return
 	}
 

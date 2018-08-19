@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"git.platform.manulife.io/go-common/log"
 	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
@@ -50,15 +51,135 @@ func TestGetId(t *testing.T) {
 	}
 }
 
-func TestApi(t *testing.T) {
-	const sample string = `{
- "id": "6f0f9805-08c6-48f2-b3c4-fe8e7c35ea4a",
- "app_name": "dummy",
- "env": "test",
- "content": "notSuperS3cret"
-}`
+func TestPost(t *testing.T) {
+	const port string = "6000"
+
+	sample := fmt.Sprintf(`{"id":"%s","app_name":"dummy","env":"test","content":"notSuperS3cret"}`, uuid.GetV4())
+	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+
+	ds, err := fileds.Open(repo, bolt.DefaultOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		ds.Close()
+		if err := os.RemoveAll(repo); err != nil {
+			t.Errorf("unable to remove temporary test repo %s\n", repo)
+		}
+	}()
+
+	// set a wait group to allow for some setup time
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func(ds *fileds.Datastore) {
+		mux := http.NewServeMux()
+		mux = Handle(mux, &Handler{Backend: ds})
+
+		wg.Done()
+		t.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), mux))
+	}(ds)
+
+	wg.Wait()
+
+	res, err := http.Post(fmt.Sprintf("http://localhost:%s/api/v2/secrets?%s=tester", port, UserParam), "application/json", strings.NewReader(sample))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if code, msg := res.StatusCode, string(b); code != http.StatusCreated {
+		t.Fatalf("test service POST responded with status code %d and message %s", code, msg)
+	}
+
+	if want, got := strings.TrimSpace(sample), strings.TrimSpace(string(b)); want != got {
+		t.Errorf("\nwant %s\ngot  %s\n", want, got)
+	}
+}
+
+func TestInvalidIdPost(t *testing.T) {
+	const port string = "6001"
 
 	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	ds, err := fileds.Open(repo, bolt.DefaultOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		ds.Close()
+		if err := os.RemoveAll(repo); err != nil {
+			t.Errorf("unable to remove temporary test repo %s\n", repo)
+		}
+	}()
+
+	// set a wait group to allow for some setup time
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func(ds *fileds.Datastore) {
+		mux := http.NewServeMux()
+		mux = Handle(mux, &Handler{Backend: ds})
+
+		wg.Done()
+		t.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), mux))
+	}(ds)
+
+	wg.Wait()
+
+	type sample struct {
+		name    string
+		value   string
+		code    int
+		message string
+	}
+
+	samples := []*sample{
+		&sample{
+			name:    "invalid_id",
+			value:   `{"app_name":"dummy","env":"test","content":"notSuperS3cret"}`,
+			code:    http.StatusBadRequest,
+			message: "an ID for the secret must be specified",
+		},
+		&sample{
+			name:    "invalid_app",
+			value:   fmt.Sprintf(`{"id":"%s","env":"test","content":"notSuperS3cret"}`, uuid.GetV4()),
+			code:    http.StatusBadRequest,
+			message: "an app name for the secret must be specified",
+		},
+		&sample{
+			name:    "invalid_env",
+			value:   fmt.Sprintf(`{"id":"%s","app_name":"dummy","content":"notSuperS3cret"}`, uuid.GetV4()),
+			code:    http.StatusBadRequest,
+			message: "an environment for the secret must be specified",
+		},
+	}
+
+	for _, s := range samples {
+		res, err := http.Post(fmt.Sprintf("http://localhost:%s/api/v2/secrets?%s=tester", port, UserParam), "application/json", strings.NewReader(s.value))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+
+		b, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if code, msg := res.StatusCode, strings.TrimSpace(string(b)); code != s.code || msg != s.message {
+			t.Errorf("test service POST responded with status code %d and message %s for test item %s", code, msg, s.name)
+		}
+	}
+}
+
+func TestGet(t *testing.T) {
+	const port string = "6002"
+	sample := fmt.Sprintf(`{"id":"%s","app_name":"dummy","env":"test","content":"notSuperS3cret"}`, uuid.GetV4())
+	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
 		t.Fatal(err)
@@ -75,6 +196,20 @@ func TestApi(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	now := time.Now().UnixNano()
+	rec := &models.Record{
+		Secret:    src,
+		Created:   now,
+		CreatedBy: "tester",
+		Updated:   now,
+		UpdatedBy: "tester",
+		Status:    models.ActiveStatus,
+	}
+
+	if err := rec.Write(ds); err != nil {
+		t.Fatal(err)
+	}
+
 	// set a wait group to allow for some setup time
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -83,49 +218,114 @@ func TestApi(t *testing.T) {
 		mux = Handle(mux, &Handler{Backend: ds})
 
 		wg.Done()
-		t.Fatal(http.ListenAndServe(":6000", mux))
+		t.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), mux))
 	}(ds)
 
 	wg.Wait()
 
-	// test POST
-	r0, err := http.Post(fmt.Sprintf("http://localhost:6000/api/v2/secrets?%s=tester", UserParam), "application/json", strings.NewReader(sample))
+	res, err := http.Get(fmt.Sprintf("http://localhost:%s/api/v2/secrets/%s", port, src.Id))
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer r0.Body.Close()
+	defer res.Body.Close()
 
-	pb, err := ioutil.ReadAll(r0.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if code, msg := r0.StatusCode, string(pb); code != http.StatusCreated {
-		t.Fatalf("test service POST responded with status code %d and message %s", code, msg)
-	}
-
-	// test GET
-	r1, err := http.Get(fmt.Sprintf("http://localhost:6000/api/v2/secrets/%s", src.Id))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer r1.Body.Close()
-
-	gb, err := ioutil.ReadAll(r1.Body)
+	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if code, msg := r1.StatusCode, string(gb); code != http.StatusOK {
+	if code, msg := res.StatusCode, string(b); code != http.StatusOK {
 		t.Fatalf("test service GET responded with status code %d and message %s", code, msg)
 	}
 
-	s, err := models.ParseSecret(string(gb))
+	s, err := models.ParseSecret(string(b))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if want, got := sample, s.MustString(); want != got {
-		t.Errorf("want %s\n\ngot %s\n", want, got)
+	if want, got := src.MustString(), s.MustString(); want != got {
+		t.Errorf("\nwant %s\ngot  %s\n", want, got)
+	}
+}
+
+func TestInvalidGet(t *testing.T) {
+	const port string = "6003"
+
+	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	ds, err := fileds.Open(repo, bolt.DefaultOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		ds.Close()
+		if err := os.RemoveAll(repo); err != nil {
+			t.Errorf("unable to remove temporary test repo %s\n", repo)
+		}
+	}()
+
+	raw := fmt.Sprintf(`{"id":"%s","app_name":"dummy","env":"test","content":"notSuperS3cret"}`, uuid.GetV4())
+	src, err := models.ParseSecret(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Now().UnixNano()
+	rec := &models.Record{
+		Secret:    src,
+		Created:   now,
+		CreatedBy: "tester",
+		Updated:   now,
+		UpdatedBy: "tester",
+		Status:    models.ActiveStatus,
+	}
+
+	if err := rec.Write(ds); err != nil {
+		t.Fatal(err)
+	}
+
+	// set a wait group to allow for some setup time
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func(ds *fileds.Datastore) {
+		mux := http.NewServeMux()
+		mux = Handle(mux, &Handler{Backend: ds})
+
+		wg.Done()
+		t.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), mux))
+	}(ds)
+
+	wg.Wait()
+
+	type sample struct {
+		name    string
+		from    string
+		code    int
+		message string
+	}
+
+	samples := []*sample{
+		&sample{
+			name:    "invalid_id",
+			from:    fmt.Sprintf("http://localhost:%s/api/v2/secrets/%s", port, uuid.GetV4()),
+			code:    http.StatusNotFound,
+			message: "file not found",
+		},
+	}
+
+	for _, s := range samples {
+		res, err := http.Get(s.from)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+
+		b, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if code, msg := res.StatusCode, strings.TrimSpace(string(b)); code != s.code && msg != s.message {
+			t.Fatalf("test service GET responded with status code %d and message %s for test item %s", code, msg, s.name)
+		}
 	}
 }
