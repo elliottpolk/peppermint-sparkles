@@ -223,7 +223,7 @@ func TestGet(t *testing.T) {
 
 	wg.Wait()
 
-	res, err := http.Get(fmt.Sprintf("http://localhost:%s/api/v2/secrets/%s", port, src.Id))
+	res, err := http.Get(fmt.Sprintf("http://localhost:%s/api/v2/secrets/%s?%s=%s&%s=%s", port, src.Id, AppParam, src.App, EnvParam, src.Env))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,9 +306,21 @@ func TestInvalidGet(t *testing.T) {
 	samples := []*sample{
 		&sample{
 			name:    "invalid_id",
-			from:    fmt.Sprintf("http://localhost:%s/api/v2/secrets/%s", port, uuid.GetV4()),
+			from:    fmt.Sprintf("http://localhost:%s/api/v2/secrets/%s?%s=%s&%s=%s", port, uuid.GetV4(), AppParam, src.App, EnvParam, src.Env),
 			code:    http.StatusNotFound,
 			message: "file not found",
+		},
+		&sample{
+			name:    "invalid_app_name",
+			from:    fmt.Sprintf("http://localhost:%s/api/v2/secrets/%s?%s=%s&%s=%s", port, src.Id, AppParam, "flerp", EnvParam, src.Env),
+			code:    http.StatusBadRequest,
+			message: "app ID and name are invalid",
+		},
+		&sample{
+			name:    "invalid_app_env",
+			from:    fmt.Sprintf("http://localhost:%s/api/v2/secrets/%s?%s=%s&%s=%s", port, src.Id, AppParam, src.App, EnvParam, "PROD"),
+			code:    http.StatusBadRequest,
+			message: "app ID and environment are invalid",
 		},
 	}
 

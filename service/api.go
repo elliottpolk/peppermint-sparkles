@@ -54,6 +54,17 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	params := r.URL.Query()
+	app, env := params.Get(AppParam), params.Get(EnvParam)
+
+	if len(app) < 1 {
+		respond.WithErrorMessage(w, http.StatusBadRequest, "a valid app name must be specified")
+	}
+
+	if len(env) < 1 {
+		respond.WithErrorMessage(w, http.StatusBadRequest, "a valid environment must be specified")
+	}
+
 	ds := h.Backend
 	raw := ds.Get(id)
 	if len(raw) < 1 {
@@ -66,6 +77,14 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		log.Error(tag, err, "unable to parse stored secret")
 		respond.WithErrorMessage(w, http.StatusBadRequest, "invalid secret")
 		return
+	}
+
+	if rec.App != app {
+		respond.WithErrorMessage(w, http.StatusBadRequest, "app ID and name are invalid")
+	}
+
+	if rec.Env != env {
+		respond.WithErrorMessage(w, http.StatusBadRequest, "app ID and environment are invalid")
 	}
 
 	if rec.Status != models.ActiveStatus {
