@@ -1,7 +1,8 @@
 package cmd
 
 import (
-	"encoding/json"
+	"bufio"
+	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -17,6 +18,76 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/urfave/cli.v2"
 )
+
+func pipe() (string, error) {
+	fi, err := os.Stdin.Stat()
+	if err != nil {
+		return "", errors.Wrap(err, "unable to stat stdin")
+	}
+
+	if fi.Mode()&os.ModeCharDevice != 0 || fi.Size() < 1 {
+		return "", ErrNoPipe
+	}
+
+	buf, res := bufio.NewReader(os.Stdin), make([]byte, 0)
+	for {
+		in, _, err := buf.ReadLine()
+		if err != nil && err == io.EOF {
+			break
+		}
+		res = append(res, in...)
+
+		if len(res) > MaxData {
+			return "", ErrDataTooLarge
+		}
+	}
+
+	return string(res), nil
+}
+
+func set(encrypt bool, token, usr, raw, addr string) (*models.Secret, error) {
+	s, err := models.ParseSecret(raw)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse secret")
+	}
+
+	// ensure the secret has an ID set
+	if len(s.Id) < 1 {
+		s.Id = uuid.GetV4()
+	}
+
+	if encrypt {
+		c := &pgp.Crypter{Token: []byte(token)}
+
+		// encrypt the content of the secret
+		cypher, err := c.Encrypt([]byte(s.Content))
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to encrypt secret content")
+		}
+
+		// set the content to the encrypted text
+		s.Content = string(cypher)
+	}
+
+	params := url.Values{
+		service.UserParam: []string{usr},
+		service.AppParam:  []string{s.App},
+		service.EnvParam:  []string{s.Env},
+		service.IdParam:   []string{s.Id},
+	}
+
+	res, err := send(asURL(addr, service.PathSecrets, params.Encode()), s.MustString())
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to send secret")
+	}
+
+	in, err := models.ParseSecret(string(res))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse in service response")
+	}
+
+	return in, nil
+}
 
 func Set(context *cli.Context) error {
 	addr := context.String(AddrFlag.Names()[0])
@@ -70,14 +141,9 @@ func Set(context *cli.Context) error {
 		raw, tick = r, +1
 	}
 
-	s, err := models.ParseSecret(raw)
-	if err != nil {
-		return cli.Exit(errors.Wrap(err, "unable to parse secret"), 1)
-	}
-
-	c, encrypt := &pgp.Crypter{}, context.Bool(EncryptFlag.Names()[0])
+	encrypt := context.Bool(EncryptFlag.Names()[0])
+	token := context.String(TokenFlag.Names()[0])
 	if encrypt {
-		token := context.String(TokenFlag.Names()[0])
 		if len(token) < 1 {
 			//	attempt to generate a token if one not provided, erroring and exiting
 			//	if unable. This attempts to prevent encrypting with empty string
@@ -87,60 +153,24 @@ func Set(context *cli.Context) error {
 			}
 			token = t
 		}
-
-		c.Token = []byte(token)
-
-		cypher, err := c.Encrypt([]byte(s.Content))
-		if err != nil {
-			return cli.Exit(errors.Wrap(err, "unable to encrypt secret content"), 1)
-		}
-
-		s.Content = string(cypher)
 	}
 
-	//	generate and set a uuid for uniqueness
-	id := uuid.GetV4()
-
-	//	convert to JSON string for sending to secrets service
-	out, err := json.Marshal(s)
-	if err != nil {
-		return cli.Exit(errors.Wrap(err, "unable to convert secret to JSON string"), 1)
-	}
-
+	// get current logged in user
 	u, err := user.Current()
 	if err != nil {
 		return cli.Exit(errors.Wrap(err, "unable to retrieve current, logged-in user"), 1)
 	}
 
-	params := url.Values{
-		service.UserParam: []string{u.Username},
-		service.AppParam:  []string{s.App},
-		service.EnvParam:  []string{s.Env},
-		service.IdParam:   []string{id},
-	}
-
-	res, err := send(asURL(addr, service.PathSecrets, params.Encode()), string(out))
+	s, err := set(encrypt, token, u.Username, raw, addr)
 	if err != nil {
-		return cli.Exit(errors.Wrap(err, "unable to send config"), 1)
-	}
-
-	//	convert from and back to JSON string to provide "prettier" formatting on print
-	ugly := &models.Secret{}
-	if err := json.Unmarshal([]byte(res), &ugly); err != nil {
-		log.Error(tag, err, "unable to parse in JSON string for pretty output")
-	}
-
-	pretty, err := json.MarshalIndent(ugly, "", "   ")
-	if err != nil {
-		log.Error(tag, err, "unable to marshal secret back to (prettier) JSON string")
+		return cli.Exit(errors.Wrap(err, "unable to set secret"), 1)
 	}
 
 	//	ensure to display encryption token, since it may have been generated
 	if encrypt {
-		log.Infof(tag, "token: %s", c.Token)
+		log.Infof(tag, "token: %s", token)
 	}
-	log.Infof(tag, "uuid:  %s", id)
-	log.Infof(tag, "secret:\n%s", string(pretty))
+	log.Infof(tag, "secret:\n%s", s.MustString())
 
 	return nil
 }
