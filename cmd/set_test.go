@@ -2,14 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 
-	"git.platform.manulife.io/go-common/log"
 	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto/pgp"
@@ -18,25 +16,6 @@ import (
 
 	bolt "github.com/coreos/bbolt"
 )
-
-func init() {
-	log.InitTester()
-}
-
-func freeport() int {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		panic(err)
-	}
-
-	listener, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		panic(err)
-	}
-	defer listener.Close()
-
-	return listener.Addr().(*net.TCPAddr).Port
-}
 
 func TestSet(t *testing.T) {
 	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())

@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
-	"path"
 
 	"git.platform.manulife.io/go-common/log"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto/pgp"
@@ -13,6 +13,50 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/urfave/cli.v2"
 )
+
+func get(decrypt bool, token, addr, id string, params *url.Values) (*models.Secret, error) {
+	if len(id) < 1 {
+		return nil, errors.New("a valid secret ID must be provided")
+	}
+
+	if len(params.Get(service.AppParam)) < 1 {
+		return nil, errors.New("a valid secret app name must be provided")
+	}
+
+	if len(params.Get(service.EnvParam)) < 1 {
+		return nil, errors.New("a valid secret environment must be provided")
+	}
+
+	raw, err := retrieve(asURL(addr, fmt.Sprintf("%s/%s", service.PathSecrets, id), params.Encode()))
+	if err != nil {
+		if err.Error() == "no valid secret" {
+			return nil, err
+		}
+		return nil, errors.Wrap(err, "unable to retrieve secret")
+	}
+
+	if len(raw) < 1 {
+		return nil, errors.New("no valid secret")
+	}
+
+	//  test / validate if stored content meets the secrets model and also
+	//  to allow for decryption
+	s := &models.Secret{}
+	if err := json.Unmarshal([]byte(raw), &s); err != nil {
+		return nil, errors.Wrap(err, "unable to convert string to secrets")
+	}
+
+	if decrypt {
+		c := pgp.Crypter{Token: []byte(token)}
+		res, err := c.Decrypt([]byte(s.Content))
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to decrypt secret")
+		}
+		s.Content = string(res)
+	}
+
+	return s, nil
+}
 
 func Get(context *cli.Context) error {
 	addr := context.String(AddrFlag.Names()[0])
@@ -28,52 +72,16 @@ func Get(context *cli.Context) error {
 		return cli.Exit(errors.New("decrypt token must be specified in order to decrypt"), 1)
 	}
 
-	id := context.String(SecretIdFlag.Names()[0])
-	app := context.String(AppNameFlag.Names()[0])
-	env := context.String(AppEnvFlag.Names()[0])
-
-	params := &url.Values{}
-	from := service.PathSecrets
-
-	if len(id) < 1 {
-		if len(app) < 1 || len(env) < 1 {
-			return cli.Exit(errors.New("a valid secret ID or app name / environment combo must be provided"), 1)
-		} else {
-			params = &url.Values{
-				service.AppParam: []string{app},
-				service.EnvParam: []string{env},
-			}
-		}
-	} else {
-		from = path.Join(from, id)
+	params := &url.Values{
+		service.AppParam: []string{context.String(AppNameFlag.Names()[0])},
+		service.EnvParam: []string{context.String(AppEnvFlag.Names()[0])},
 	}
 
-	raw, err := retrieve(asURL(addr, from, params.Encode()))
-	if err != nil && err.Error() != "no valid secret" {
-		return cli.Exit(errors.Wrap(err, "unable to retrieve secret"), 1)
-	}
-
-	if len(raw) < 1 {
-		return nil
-	}
-
-	//  test / validate if stored content meets the secrets model and also
-	//  to allow for decryption
-	s := &models.Secret{}
-	if err := json.Unmarshal([]byte(raw), &s); err != nil {
-		return cli.Exit(errors.Wrap(err, "unable to convert string to secrets"), 1)
-	}
-
-	if decrypt {
-		c := pgp.Crypter{Token: []byte(token)}
-		res, err := c.Decrypt([]byte(s.Content))
-		if err != nil {
-			return cli.Exit(errors.Wrap(err, "unable to decrypt secret"), 1)
-		}
-		s.Content = string(res)
+	s, err := get(decrypt, token, addr, context.String(SecretIdFlag.Names()[0]), params)
+	if err != nil {
+		return cli.Exit(errors.Wrap(err, "unable to retrieve secert"), 1)
 	}
 
 	log.Infof("\n%s\n", s.MustString())
-
 	return nil
 }
