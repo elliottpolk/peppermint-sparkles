@@ -19,59 +19,10 @@ func main() {
 		Usage:     "Server and client for managing super special secrets 🦄",
 		Version:   version,
 		Commands: []*cli.Command{
-			&cli.Command{
-				Name:    "get",
-				Aliases: []string{"ls", "list"},
-				Flags: []cli.Flag{
-					&cmd.AddrFlag,
-					&cmd.AppNameFlag,
-					&cmd.AppEnvFlag,
-					&cmd.SecretIdFlag,
-					&cmd.DecryptFlag,
-					&cmd.TokenFlag,
-				},
-				Usage:  "retrieves secrets",
-				Action: cmd.Get,
-			},
-			&cli.Command{
-				Name:    "set",
-				Aliases: []string{"add", "create", "new", "update"},
-				Flags: []cli.Flag{
-					&cmd.AddrFlag,
-					&cmd.SecretFlag,
-					&cmd.SecretFileFlag,
-					&cmd.EncryptFlag,
-					&cmd.TokenFlag,
-					&cmd.SecretIdFlag,
-				},
-				Usage:  "adds or updates a secret",
-				Action: cmd.Set,
-			},
-			&cli.Command{
-				Name:    "delete",
-				Aliases: []string{"del", "rm"},
-				Flags: []cli.Flag{
-					&cmd.AddrFlag,
-					&cmd.SecretIdFlag,
-				},
-				Usage:  "deletes a secret",
-				Action: cmd.Remove,
-			},
-			&cli.Command{
-				Name:    "server",
-				Aliases: []string{"serve"},
-				Flags: []cli.Flag{
-					&cmd.StdListenPortFlag,
-					&cmd.TlsListenPortFlag,
-					&cmd.TlsCertFlag,
-					&cmd.TlsKeyFlag,
-					&cmd.DatastoreAddrFlag,
-					&cmd.DatastoreFileFlag,
-					&cmd.DatastoreTypeFlag,
-				},
-				Usage:  "start the server",
-				Action: cmd.Serve,
-			},
+			cmd.Get,
+			cmd.Set,
+			cmd.Remove,
+			cmd.Serve,
 		},
 	}
 

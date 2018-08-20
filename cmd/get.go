@@ -14,6 +14,49 @@ import (
 	"gopkg.in/urfave/cli.v2"
 )
 
+var (
+	Get = &cli.Command{
+		Name:    "get",
+		Aliases: []string{"ls", "list"},
+		Flags: []cli.Flag{
+			&AddrFlag,
+			&AppNameFlag,
+			&AppEnvFlag,
+			&SecretIdFlag,
+			&DecryptFlag,
+			&TokenFlag,
+		},
+		Usage: "retrieves secrets",
+		Action: func(context *cli.Context) error {
+			addr := context.String(AddrFlag.Names()[0])
+			if len(addr) < 1 {
+				cli.ShowCommandHelpAndExit(context, context.Command.FullName(), 1)
+				return nil
+			}
+
+			token := context.String(TokenFlag.Names()[0])
+			decrypt := context.Bool(DecryptFlag.Names()[0])
+
+			if decrypt && len(token) < 1 {
+				return cli.Exit(errors.New("decrypt token must be specified in order to decrypt"), 1)
+			}
+
+			params := &url.Values{
+				service.AppParam: []string{context.String(AppNameFlag.Names()[0])},
+				service.EnvParam: []string{context.String(AppEnvFlag.Names()[0])},
+			}
+
+			s, err := get(decrypt, token, addr, context.String(SecretIdFlag.Names()[0]), params)
+			if err != nil {
+				return cli.Exit(errors.Wrap(err, "unable to retrieve secert"), 1)
+			}
+
+			log.Infof("\n%s\n", s.MustString())
+			return nil
+		},
+	}
+)
+
 func get(decrypt bool, token, addr, id string, params *url.Values) (*models.Secret, error) {
 	if len(id) < 1 {
 		return nil, errors.New("a valid secret ID must be provided")
@@ -56,32 +99,4 @@ func get(decrypt bool, token, addr, id string, params *url.Values) (*models.Secr
 	}
 
 	return s, nil
-}
-
-func Get(context *cli.Context) error {
-	addr := context.String(AddrFlag.Names()[0])
-	if len(addr) < 1 {
-		cli.ShowCommandHelpAndExit(context, context.Command.FullName(), 1)
-		return nil
-	}
-
-	token := context.String(TokenFlag.Names()[0])
-	decrypt := context.Bool(DecryptFlag.Names()[0])
-
-	if decrypt && len(token) < 1 {
-		return cli.Exit(errors.New("decrypt token must be specified in order to decrypt"), 1)
-	}
-
-	params := &url.Values{
-		service.AppParam: []string{context.String(AppNameFlag.Names()[0])},
-		service.EnvParam: []string{context.String(AppEnvFlag.Names()[0])},
-	}
-
-	s, err := get(decrypt, token, addr, context.String(SecretIdFlag.Names()[0]), params)
-	if err != nil {
-		return cli.Exit(errors.Wrap(err, "unable to retrieve secert"), 1)
-	}
-
-	log.Infof("\n%s\n", s.MustString())
-	return nil
 }

@@ -10,15 +10,13 @@ import (
 	"time"
 
 	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto/pgp"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/models"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
 	bolt "github.com/coreos/bbolt"
 )
 
-func TestGet(t *testing.T) {
+func TestRm(t *testing.T) {
 	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
@@ -31,21 +29,9 @@ func TestGet(t *testing.T) {
 		}
 	}()
 
-	tok, err := crypto.NewToken()
-	if err != nil {
-		t.Fatal(err)
+	id, app, env, content, usr := uuid.GetV4(), "dummy", "test", "notSuperS3cret", "tester"
 
-	}
-
-	id, app, env, content := uuid.GetV4(), "dummy", "test", "notSuperS3cret"
-
-	crypter := &pgp.Crypter{Token: []byte(tok)}
-	cypher, err := crypter.Encrypt([]byte(content))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	sample := fmt.Sprintf(`{"id":"%s","app_name":"%s","env":"%s","content":"%s"}`, id, app, env, string(cypher))
+	sample := fmt.Sprintf(`{"id":"%s","app_name":"%s","env":"%s","content":"%s"}`, id, app, env, content)
 	src, err := models.ParseSecret(sample)
 	if err != nil {
 		t.Fatal(err)
@@ -55,9 +41,9 @@ func TestGet(t *testing.T) {
 	rec := &models.Record{
 		Secret:    src,
 		Created:   now,
-		CreatedBy: "tester",
+		CreatedBy: usr,
 		Updated:   now,
-		UpdatedBy: "tester",
+		UpdatedBy: usr,
 		Status:    models.ActiveStatus,
 	}
 
@@ -80,28 +66,12 @@ func TestGet(t *testing.T) {
 	wg.Wait()
 
 	params := &url.Values{
-		service.AppParam: []string{app},
-		service.EnvParam: []string{env},
+		service.AppParam:  []string{app},
+		service.EnvParam:  []string{env},
+		service.UserParam: []string{usr},
 	}
 
-	res, err := get(true, tok, fmt.Sprintf("http://localhost:%d", port), id, params)
-	if err != nil {
+	if err := rm(id, fmt.Sprintf("http://localhost:%d", port), params); err != nil {
 		t.Fatal(err)
-	}
-
-	if want, got := id, res.Id; want != got {
-		t.Errorf("\nwant %s\ngot  %s\n", want, got)
-	}
-
-	if want, got := app, res.App; want != got {
-		t.Errorf("\nwant %s\ngot  %s\n", want, got)
-	}
-
-	if want, got := env, res.Env; want != got {
-		t.Errorf("\nwant %s\ngot  %s\n", want, got)
-	}
-
-	if want, got := content, res.Content; want != got {
-		t.Errorf("\nwant %s\ngot  %s\n", want, got)
 	}
 }

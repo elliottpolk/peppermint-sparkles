@@ -59,10 +59,12 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 
 	if len(app) < 1 {
 		respond.WithErrorMessage(w, http.StatusBadRequest, "a valid app name must be specified")
+		return
 	}
 
 	if len(env) < 1 {
 		respond.WithErrorMessage(w, http.StatusBadRequest, "a valid environment must be specified")
+		return
 	}
 
 	ds := h.Backend
@@ -81,10 +83,12 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 
 	if rec.App != app {
 		respond.WithErrorMessage(w, http.StatusBadRequest, "app ID and name are invalid")
+		return
 	}
 
 	if rec.Env != env {
 		respond.WithErrorMessage(w, http.StatusBadRequest, "app ID and environment are invalid")
+		return
 	}
 
 	if rec.Status != models.ActiveStatus {
@@ -164,18 +168,74 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 	respond.WithJsonCreated(w, s)
 }
 
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		h.get(w, r)
+func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
 
-	case http.MethodPost:
-		h.create(w, r)
-
-	default:
-		respond.WithMethodNotAllowed(w)
+	matched, id, err := getId(r.URL.Path)
+	if err != nil {
+		log.Error(tag, err, "unable to retrieve the secret ID from the URL path")
+		respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
 		return
 	}
+
+	if !matched {
+		respond.WithErrorMessage(w, http.StatusBadRequest, "a valid ID must be specified")
+		return
+	}
+
+	ds := h.Backend
+
+	raw := ds.Get(id)
+	if len(raw) < 1 {
+		respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
+		return
+	}
+
+	rec, err := models.ParseRecord(raw)
+	if err != nil {
+		log.Error(tag, err, "unable to parse stored secret")
+		respond.WithErrorMessage(w, http.StatusBadRequest, "invalid secret")
+		return
+	}
+
+	params := r.URL.Query()
+	app, env, usr := params.Get(AppParam), params.Get(EnvParam), params.Get(UserParam)
+
+	if len(app) < 1 || rec.App != app {
+		respond.WithErrorMessage(w, http.StatusBadRequest, "invalid app name")
+		return
+	}
+
+	if len(env) < 1 || rec.Env != env {
+		respond.WithErrorMessage(w, http.StatusBadRequest, "invalid app environment")
+		return
+	}
+
+	if len(usr) < 1 {
+		respond.WithErrorMessage(w, http.StatusBadRequest, "invalid user")
+		return
+	}
+
+	if rec.Status != models.ActiveStatus {
+		log.Infof(tag, "record for ID %s found, but has status %s", rec.Id, rec.Status)
+		respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
+		return
+	}
+
+	histo := models.Historical{Record: rec}
+	if err := histo.Write(ds, models.DeleteAction, usr, time.Now().UnixNano()); err != nil {
+		log.Error(tag, err, "unable to write record to history")
+		respond.WithError(w, http.StatusInternalServerError, err, "unable to delete secret")
+		return
+	}
+
+	if err := rec.Rm(ds); err != nil {
+		log.Error(tag, err, "unable to remove record from datastore")
+		respond.WithError(w, http.StatusInternalServerError, err, "unable to delete secrete")
+		return
+	}
+
+	respond.WithDefaultOk(w)
 }
 
 func getId(path string) (bool, string, error) {
@@ -195,4 +255,20 @@ func getId(path string) (bool, string, error) {
 		return true, m["id"], nil
 	}
 	return false, "", nil
+}
+
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		h.get(w, r)
+
+	case http.MethodPost:
+		h.create(w, r)
+
+	case http.MethodDelete:
+		h.delete(w, r)
+
+	default:
+		respond.WithMethodNotAllowed(w)
+	}
 }

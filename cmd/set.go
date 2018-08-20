@@ -19,6 +19,108 @@ import (
 	"gopkg.in/urfave/cli.v2"
 )
 
+var (
+	Set = &cli.Command{
+		Name:    "set",
+		Aliases: []string{"add", "create", "new", "update"},
+		Flags: []cli.Flag{
+			&AddrFlag,
+			&SecretFlag,
+			&SecretFileFlag,
+			&EncryptFlag,
+			&TokenFlag,
+			&SecretIdFlag,
+		},
+		Usage: "adds or updates a secret",
+
+		Action: func(context *cli.Context) error {
+			addr := context.String(AddrFlag.Names()[0])
+			if len(addr) < 1 {
+				cli.ShowCommandHelpAndExit(context, context.Command.FullName(), 1)
+				return nil
+			}
+
+			raw, f := context.String(SecretFlag.Names()[0]), context.String(SecretFileFlag.Names()[0])
+			if len(raw) > 0 && len(f) > 0 {
+				return cli.Exit(errors.New("only 1 input method is allowed"), 1)
+			}
+
+			//	raw should not have anything if this is true
+			if len(f) > 0 {
+				info, err := os.Stat(f)
+				if err != nil {
+					return cli.Exit(errors.Wrap(err, "uanble to access secrets file"), 1)
+				}
+
+				if info.Size() > int64(MaxData) {
+					return cli.Exit(errors.New("secret must be less than 3MB"), 1)
+				}
+
+				r, err := ioutil.ReadFile(f)
+				if err != nil {
+					return cli.Exit(errors.Wrap(err, "unable to read in secret file"), 1)
+				}
+
+				raw = string(r)
+			}
+
+			//	if raw is still empty at this point, attempt to read in piped data
+			tick := 0
+			for len(raw) < 1 {
+				if tick > 0 {
+					return cli.Exit(errors.New("a valid secret must be specified"), 1)
+				}
+
+				r, err := pipe()
+				if err != nil {
+					switch err {
+					case ErrNoPipe:
+						return cli.Exit(errors.New("a valid secret must be specified"), 1)
+					case ErrDataTooLarge:
+						return cli.Exit(errors.New("secret must be less than 3MB"), 1)
+					default:
+						return cli.Exit(errors.Wrap(err, "unable to read piped in data"), 1)
+					}
+				}
+				raw, tick = r, +1
+			}
+
+			encrypt := context.Bool(EncryptFlag.Names()[0])
+			token := context.String(TokenFlag.Names()[0])
+			if encrypt {
+				if len(token) < 1 {
+					//	attempt to generate a token if one not provided, erroring and exiting
+					//	if unable. This attempts to prevent encrypting with empty string
+					t, err := crypto.NewToken()
+					if err != nil {
+						return cli.Exit(errors.Wrap(err, "unable to generate encryption token"), 1)
+					}
+					token = t
+				}
+			}
+
+			// get current logged in user
+			u, err := user.Current()
+			if err != nil {
+				return cli.Exit(errors.Wrap(err, "unable to retrieve current, logged-in user"), 1)
+			}
+
+			s, err := set(encrypt, token, u.Username, raw, addr)
+			if err != nil {
+				return cli.Exit(errors.Wrap(err, "unable to set secret"), 1)
+			}
+
+			//	ensure to display encryption token, since it may have been generated
+			if encrypt {
+				log.Infof(tag, "token: %s", token)
+			}
+			log.Infof(tag, "secret:\n%s", s.MustString())
+
+			return nil
+		},
+	}
+)
+
 func pipe() (string, error) {
 	fi, err := os.Stdin.Stat()
 	if err != nil {
@@ -87,90 +189,4 @@ func set(encrypt bool, token, usr, raw, addr string) (*models.Secret, error) {
 	}
 
 	return in, nil
-}
-
-func Set(context *cli.Context) error {
-	addr := context.String(AddrFlag.Names()[0])
-	if len(addr) < 1 {
-		cli.ShowCommandHelpAndExit(context, context.Command.FullName(), 1)
-		return nil
-	}
-
-	raw, f := context.String(SecretFlag.Names()[0]), context.String(SecretFileFlag.Names()[0])
-	if len(raw) > 0 && len(f) > 0 {
-		return cli.Exit(errors.New("only 1 input method is allowed"), 1)
-	}
-
-	//	raw should not have anything if this is true
-	if len(f) > 0 {
-		info, err := os.Stat(f)
-		if err != nil {
-			return cli.Exit(errors.Wrap(err, "uanble to access secrets file"), 1)
-		}
-
-		if info.Size() > int64(MaxData) {
-			return cli.Exit(errors.New("secret must be less than 3MB"), 1)
-		}
-
-		r, err := ioutil.ReadFile(f)
-		if err != nil {
-			return cli.Exit(errors.Wrap(err, "unable to read in secret file"), 1)
-		}
-
-		raw = string(r)
-	}
-
-	//	if raw is still empty at this point, attempt to read in piped data
-	tick := 0
-	for len(raw) < 1 {
-		if tick > 0 {
-			return cli.Exit(errors.New("a valid secret must be specified"), 1)
-		}
-
-		r, err := pipe()
-		if err != nil {
-			switch err {
-			case ErrNoPipe:
-				return cli.Exit(errors.New("a valid secret must be specified"), 1)
-			case ErrDataTooLarge:
-				return cli.Exit(errors.New("secret must be less than 3MB"), 1)
-			default:
-				return cli.Exit(errors.Wrap(err, "unable to read piped in data"), 1)
-			}
-		}
-		raw, tick = r, +1
-	}
-
-	encrypt := context.Bool(EncryptFlag.Names()[0])
-	token := context.String(TokenFlag.Names()[0])
-	if encrypt {
-		if len(token) < 1 {
-			//	attempt to generate a token if one not provided, erroring and exiting
-			//	if unable. This attempts to prevent encrypting with empty string
-			t, err := crypto.NewToken()
-			if err != nil {
-				return cli.Exit(errors.Wrap(err, "unable to generate encryption token"), 1)
-			}
-			token = t
-		}
-	}
-
-	// get current logged in user
-	u, err := user.Current()
-	if err != nil {
-		return cli.Exit(errors.Wrap(err, "unable to retrieve current, logged-in user"), 1)
-	}
-
-	s, err := set(encrypt, token, u.Username, raw, addr)
-	if err != nil {
-		return cli.Exit(errors.Wrap(err, "unable to set secret"), 1)
-	}
-
-	//	ensure to display encryption token, since it may have been generated
-	if encrypt {
-		log.Infof(tag, "token: %s", token)
-	}
-	log.Infof(tag, "secret:\n%s", s.MustString())
-
-	return nil
 }

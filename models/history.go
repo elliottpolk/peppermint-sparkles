@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	CreateAction  string = "create"
-	UpdateAction  string = "update"
-	ArchiveAction string = "archive"
+	CreateAction string = "create"
+	UpdateAction string = "update"
+	DeleteAction string = "delete"
 )
 
 type Historical struct {

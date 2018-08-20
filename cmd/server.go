@@ -70,87 +70,102 @@ var (
 		Usage:   "address for the remote datastore",
 		EnvVars: []string{"PSPARKLES_DS_ADDR"},
 	}
-)
 
-func Serve(context *cli.Context) error {
-	var (
-		ds  backend.Datastore
-		err error
-	)
+	Serve = &cli.Command{
+		Name:    "server",
+		Aliases: []string{"serve"},
+		Flags: []cli.Flag{
+			&StdListenPortFlag,
+			&TlsListenPortFlag,
+			&TlsCertFlag,
+			&TlsKeyFlag,
+			&DatastoreAddrFlag,
+			&DatastoreFileFlag,
+			&DatastoreTypeFlag,
+		},
+		Usage: "start the server",
 
-	dst := context.String(DatastoreTypeFlag.Names()[0])
+		Action: func(context *cli.Context) error {
+			var (
+				ds  backend.Datastore
+				err error
+			)
 
-	switch dst {
-	case backend.Redis:
-		opts := &redis.Options{Addr: context.String(DatastoreAddrFlag.Names()[0])}
+			dst := context.String(DatastoreTypeFlag.Names()[0])
 
-		//	check if running in PCF pull the vcap services if available
-		services, err := vcap.GetServices()
-		if err != nil {
-			return cli.Exit(errors.Wrap(err, "unable to retrieve vcap services"), 1)
-		}
+			switch dst {
+			case backend.Redis:
+				opts := &redis.Options{Addr: context.String(DatastoreAddrFlag.Names()[0])}
 
-		if services != nil {
-			if i := services.Tagged(dst); i != nil {
-				creds := i.Credentials
-				opts = &redis.Options{
-					Addr:     fmt.Sprintf("%s:%d", creds["host"].(string), int(creds["port"].(float64))),
-					Password: creds["password"].(string),
+				//	check if running in PCF pull the vcap services if available
+				services, err := vcap.GetServices()
+				if err != nil {
+					return cli.Exit(errors.Wrap(err, "unable to retrieve vcap services"), 1)
 				}
+
+				if services != nil {
+					if i := services.Tagged(dst); i != nil {
+						creds := i.Credentials
+						opts = &redis.Options{
+							Addr:     fmt.Sprintf("%s:%d", creds["host"].(string), int(creds["port"].(float64))),
+							Password: creds["password"].(string),
+						}
+					}
+				}
+
+				if ds, err = redisds.Open(opts); err != nil {
+					return cli.Exit(errors.Wrap(err, "unable to open connection to datastore"), 1)
+				}
+
+			case backend.File:
+
+				//	FIXME ... include / handle additional bolt options (e.g. timeout, etc)
+				fname := context.String(DatastoreFileFlag.Names()[0])
+				if ds, err = fileds.Open(fname, bolt.DefaultOptions); err != nil {
+					return cli.Exit(errors.Wrap(err, "unable to open connection to datastore"), 1)
+				}
+
+			default:
+				return cli.Exit(errors.Errorf("%s is not a supported datastore type", dst), 1)
 			}
-		}
 
-		if ds, err = redisds.Open(opts); err != nil {
-			return cli.Exit(errors.Wrap(err, "unable to open connection to datastore"), 1)
-		}
+			defer ds.Close()
+			log.Debug(tag, "datastore opened")
 
-	case backend.File:
+			mux := http.NewServeMux()
 
-		//	FIXME ... include / handle additional bolt options (e.g. timeout, etc)
-		fname := context.String(DatastoreFileFlag.Names()[0])
-		if ds, err = fileds.Open(fname, bolt.DefaultOptions); err != nil {
-			return cli.Exit(errors.Wrap(err, "unable to open connection to datastore"), 1)
-		}
+			//	attach current service handler
+			mux = service.Handle(mux, &service.Handler{Backend: ds})
 
-	default:
-		return cli.Exit(errors.Errorf("%s is not a supported datastore type", dst), 1)
+			//	start HTTPS listener in a seperate go routine since it is a blocking func
+			go func() {
+				cert, key := context.String(TlsCertFlag.Names()[0]), context.String(TlsKeyFlag.Names()[0])
+				if len(cert) < 1 || len(key) < 1 {
+					return
+				}
+
+				if _, err := os.Stat(cert); err != nil {
+					log.Error(tag, err, "unable to access TLS cert file")
+					return
+				}
+
+				if _, err := os.Stat(key); err != nil {
+					log.Error(tag, err, "unable to access TLS key file")
+					return
+				}
+
+				addr := fmt.Sprintf(":%s", context.String(TlsListenPortFlag.Names()[0]))
+
+				log.Debug(tag, "starting HTTPS listener")
+				log.Fatal(tag, http.ListenAndServeTLS(addr, cert, key, mux))
+			}()
+
+			log.Debug(tag, "starting HTTP listener")
+
+			addr := fmt.Sprintf(":%s", context.String(StdListenPortFlag.Names()[0]))
+			log.Fatal(tag, http.ListenAndServe(addr, mux))
+
+			return nil
+		},
 	}
-
-	defer ds.Close()
-	log.Debug(tag, "datastore opened")
-
-	mux := http.NewServeMux()
-
-	//	attach current service handler
-	mux = service.Handle(mux, &service.Handler{Backend: ds})
-
-	//	start HTTPS listener in a seperate go routine since it is a blocking func
-	go func() {
-		cert, key := context.String(TlsCertFlag.Names()[0]), context.String(TlsKeyFlag.Names()[0])
-		if len(cert) < 1 || len(key) < 1 {
-			return
-		}
-
-		if _, err := os.Stat(cert); err != nil {
-			log.Error(tag, err, "unable to access TLS cert file")
-			return
-		}
-
-		if _, err := os.Stat(key); err != nil {
-			log.Error(tag, err, "unable to access TLS key file")
-			return
-		}
-
-		addr := fmt.Sprintf(":%s", context.String(TlsListenPortFlag.Names()[0]))
-
-		log.Debug(tag, "starting HTTPS listener")
-		log.Fatal(tag, http.ListenAndServeTLS(addr, cert, key, mux))
-	}()
-
-	log.Debug(tag, "starting HTTP listener")
-
-	addr := fmt.Sprintf(":%s", context.String(StdListenPortFlag.Names()[0]))
-	log.Fatal(tag, http.ListenAndServe(addr, mux))
-
-	return nil
-}
+)

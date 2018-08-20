@@ -44,6 +44,10 @@ func (r *Record) Write(where backend.Datastore) error {
 	return where.Set(r.Secret.Id, out)
 }
 
+func (r *Record) Rm(from backend.Datastore) error {
+	return from.Remove(r.Secret.Id)
+}
+
 func (r *Record) String() (string, error) {
 	out, err := json.MarshalIndent(r, "", " ")
 	if err != nil {
