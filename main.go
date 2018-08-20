@@ -15,7 +15,7 @@ func main() {
 	log.Init(version)
 
 	app := cli.App{
-		Copyright: "Copyright © 2018 Manulife",
+		Copyright: "Copyright © 2018",
 		Usage:     "Server and client for managing super special secrets 🦄",
 		Version:   version,
 		Commands: []*cli.Command{
