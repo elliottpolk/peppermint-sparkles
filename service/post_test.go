@@ -45,7 +45,7 @@ func TestPost(t *testing.T) {
 
 	wg.Wait()
 
-	res, err := http.Post(fmt.Sprintf("http://localhost:%d/api/v2/secrets?%s=tester", port, UserParam), "application/json", strings.NewReader(sample))
+	res, err := http.Post(fmt.Sprintf("http://localhost:%d%s?%s=tester", port, PathSecrets, UserParam), "application/json", strings.NewReader(sample))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestInvalidIdPost(t *testing.T) {
 	}
 
 	for _, s := range samples {
-		res, err := http.Post(fmt.Sprintf("http://localhost:%d/api/v2/secrets?%s=tester", port, UserParam), "application/json", strings.NewReader(s.value))
+		res, err := http.Post(fmt.Sprintf("http://localhost:%d%s?%s=tester", port, PathSecrets, UserParam), "application/json", strings.NewReader(s.value))
 		if err != nil {
 			t.Fatal(err)
 		}

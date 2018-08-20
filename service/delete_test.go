@@ -67,7 +67,7 @@ func TestDelete(t *testing.T) {
 
 	wg.Wait()
 
-	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://localhost:%d/api/v2/secrets/%s", port, src.Id), nil)
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://localhost:%d%s/%s", port, PathSecrets, src.Id), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

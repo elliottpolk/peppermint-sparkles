@@ -19,7 +19,7 @@ import (
 const tag string = "peppermint-sparkles.service"
 
 const (
-	PathSecrets string = "/api/v2/secrets"
+	PathSecrets string = "/api/v3/secrets"
 
 	AppParam  string = "app_name"
 	EnvParam  string = "env"
