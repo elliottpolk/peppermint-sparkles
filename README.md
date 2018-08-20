@@ -13,7 +13,7 @@ Currently, encrypted data uses [PGP](http://www.pgpi.org/doc/pgpintro/) encrypti
 
 This is a fork and extension of the open-source project [confgr](https://github.com/elliottpolk/confgr). The original project was created under the MIT lincense and this repo _should_ continue that as a result.
 
-**_NOTE_**: By design, there is no option to list out all apps / secrets. A request to the service **_must_** include the secret ID or the app name / environment combination.
+**_NOTE_**: By design, there is no option to list out all apps / secrets. A request to the service **_must_** include the secret ID, the app name, and environment.
 ---
 
 ## Peppermint Sparkles Helper
@@ -32,10 +32,10 @@ For manual builds, this has a dependency on the [Go](https://golang.org) toolcha
 
 ```bash
 # localhost install of go
-$ go build -o $GOPATH/bin/psparkles -ldflags "-X main.version=v2.0.0"
+$ go build -o $GOPATH/bin/sparkles -ldflags "-X main.version=v3.0.0"
 
 # Docker example
-$ docker run --rm -it -v $GOPATH:/go -w /go/src/git.platform.io/oa-montreal/peppermint-sparkles golang:latest /bin/bash -c 'go build -o $GOPATH/bin/psparkles -ldflags \"-X main.version=v2.0.0\"'
+$ docker run --rm -it -v $GOPATH:/go -w /go/src/git.platform.io/oa-montreal/peppermint-sparkles golang:latest /bin/bash -c 'go build -o $GOPATH/bin/sparkles -ldflags \"-X main.version=v3.0.0\"'
 ```
 
 For additional build help and ideas, review the `Honeyfile.yml`
@@ -48,15 +48,15 @@ For additional build help and ideas, review the `Honeyfile.yml`
 
 ```bash
 # client
-$ psparkles -h
+$ sparkles -h
 NAME:
-   psparkles - Server and client for managing super special secrets 🦄
+   sparkles - Server and client for managing super special secrets 🦄
 
 USAGE:
-   psparkles [global options] command [command options] [arguments...]
+   sparkles [global options] command [command options] [arguments...]
 
 VERSION:
-   v2.1.0
+   v3.0.0
 
 COMMANDS:
      get, ls, list                  retrieves secrets
@@ -70,16 +70,16 @@ GLOBAL OPTIONS:
    --version, -v  print the version (default: false)
 
 COPYRIGHT:
-   Copyright © 2018 Manulife
+   Copyright © 2018
       
 ###
 # server
-$ psparkles serve -h
+$ sparkles serve -h
 NAME:
-   psparkles server - start the server
+   sparkles server - start the server
 
 USAGE:
-   psparkles server [command options] [arguments...]
+   sparkles server [command options] [arguments...]
 
 OPTIONS:
    --port value, -p value               HTTP port to listen on (default: "8080") [$PSPARKLES_HTTP_PORT]
@@ -92,7 +92,7 @@ OPTIONS:
    --help, -h                           show help (default: false)
 
 # assumes a redis instance is running on localhost:6379
-$ psparkles serve -dst redis
+$ sparkles serve -dst redis
 ```
 
 ### setting a new secret
@@ -100,87 +100,62 @@ There are 3 different ways to add a secret:
 
 * `-s <value>` flag
 * `-f <full/path/to/file>` flag
-* _"piping"_ the results into the command
+* _"piping"_ the results into the command (currently broken on **_non-macOS_** systems)
 
 ```bash
-$ cat secret.json | psparkles set --addr http://localhost:8080
+$ cat secret.json | sparkles set --addr http://localhost:8080
 INFO[0000] token: OTUzMmE1N2QtZjU5MS00N2Y2LWIxZmEtMzBlYzllZjNlYzNj
 INFO[0000] secret:
 {
-   "id": "fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742",
+   "id": "50711b9b-4fb3-4192-affe-73c735174ad8",
    "app_name": "testing",
    "env": "dev",
    "content": "LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tCgp3eDRFQndNSUVNU1ZrSjBqMlZ4Z3NINzI0U01ZekE4OUdLbGVUMDMzaGZyUzRBSGtQNkZhcjJYbWEvbnYzWnlNCkVKbmNyT0drcitBcTRPZmhxbC9nYytJYlJRV3k0S2JsOEhSRjVSdUhyb1prN0dPMlcvcTJ4U3FELzNEZWxLZ0wKeEJ6V1hDWjVKSWpnU2VUQTcwNEE3eTNFbVhrWXNLWXlhUUJDNEtMajhCekZMN1Y1a2NIZ24rRTdEdUNnNEhuZwpST1NLVFBIU3NiUXpYeWRYeUxwWU9vWFc0cG0wM1IzaE1UWUEKPUZLVUwKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQ=="
 }
 ```
 
-### getting an existing secret with the app name and envrionment
+### getting an existing secret
 
 ```bash
 # encrypted
-$ psparkles get -addr http://localhost:8080 -a testing -e dev
+$ sparkles get -addr http://localhost:8080 -a testing -e dev --id 50711b9b-4fb3-4192-affe-73c735174ad8
 INFO[0000]
 {
- "id": "fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742",
+ "id": "50711b9b-4fb3-4192-affe-73c735174ad8",
  "app_name": "testing",
  "env": "dev",
  "content": "LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tCgp3eDRFQndNSUVNU1ZrSjBqMlZ4Z3NINzI0U01ZekE4OUdLbGVUMDMzaGZyUzRBSGtQNkZhcjJYbWEvbnYzWnlNCkVKbmNyT0drcitBcTRPZmhxbC9nYytJYlJRV3k0S2JsOEhSRjVSdUhyb1prN0dPMlcvcTJ4U3FELzNEZWxLZ0wKeEJ6V1hDWjVKSWpnU2VUQTcwNEE3eTNFbVhrWXNLWXlhUUJDNEtMajhCekZMN1Y1a2NIZ24rRTdEdUNnNEhuZwpST1NLVFBIU3NiUXpYeWRYeUxwWU9vWFc0cG0wM1IzaE1UWUEKPUZLVUwKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQ=="
 }
 
 # to decrypt
-$ psparkles get -addr http://localhost:8080 -a testing -e dev --decrypt -t OTUzMmE1N2QtZjU5MS00N2Y2LWIxZmEtMzBlYzllZjNlYzNj
+$ sparkles get -addr http://localhost:8080 -a testing -e dev --id 50711b9b-4fb3-4192-affe-73c735174ad8 --decrypt -t OTUzMmE1N2QtZjU5MS00N2Y2LWIxZmEtMzBlYzllZjNlYzNj
 INFO[0000]
 {
- "id": "fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742",
+ "id": "50711b9b-4fb3-4192-affe-73c735174ad8",
  "app_name": "testing",
  "env": "dev",
  "content": "{\"user\": \"some_admin\", \"passwd\": \"some_SUPER.Secret#Value\"}"
 }
 ```
-
-### getting an existing secret with the ID
-
-```bash
-# encrypted
-$ psparkles get -addr http://localhost:8080 --id fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742
-INFO[0000]
-{
- "id": "fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742",
- "app_name": "testing",
- "env": "dev",
- "content": "LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tCgp3eDRFQndNSUVNU1ZrSjBqMlZ4Z3NINzI0U01ZekE4OUdLbGVUMDMzaGZyUzRBSGtQNkZhcjJYbWEvbnYzWnlNCkVKbmNyT0drcitBcTRPZmhxbC9nYytJYlJRV3k0S2JsOEhSRjVSdUhyb1prN0dPMlcvcTJ4U3FELzNEZWxLZ0wKeEJ6V1hDWjVKSWpnU2VUQTcwNEE3eTNFbVhrWXNLWXlhUUJDNEtMajhCekZMN1Y1a2NIZ24rRTdEdUNnNEhuZwpST1NLVFBIU3NiUXpYeWRYeUxwWU9vWFc0cG0wM1IzaE1UWUEKPUZLVUwKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQ=="
-}
-
-# to decrypt
-$ psparkles get -addr http://localhost:8080 --id fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742 --decrypt -t OTUzMmE1N2QtZjU5MS00N2Y2LWIxZmEtMzBlYzllZjNlYzNj
-INFO[0000]
-{
- "id": "fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742",
- "app_name": "testing",
- "env": "dev",
- "content": "{\"user\": \"some_admin\", \"passwd\": \"some_SUPER.Secret#Value\"}"
-}
-```
-
 
 ### removing configurations
 
 ```bash
 # displaying current state just for example
-$ psparkles get -addr http://localhost:8080 -a testing -e dev
+$ sparkles get -addr http://localhost:8080 -a testing -e dev --id 50711b9b-4fb3-4192-affe-73c735174ad8
 INFO[0000]
 {
- "id": "fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742",
+ "id": "50711b9b-4fb3-4192-affe-73c735174ad8",
  "app_name": "testing",
  "env": "dev",
  "content": "LS0tLS1CRUdJTiBQR1AgTUVTU0FHRS0tLS0tCgp3eDRFQndNSUVNU1ZrSjBqMlZ4Z3NINzI0U01ZekE4OUdLbGVUMDMzaGZyUzRBSGtQNkZhcjJYbWEvbnYzWnlNCkVKbmNyT0drcitBcTRPZmhxbC9nYytJYlJRV3k0S2JsOEhSRjVSdUhyb1prN0dPMlcvcTJ4U3FELzNEZWxLZ0wKeEJ6V1hDWjVKSWpnU2VUQTcwNEE3eTNFbVhrWXNLWXlhUUJDNEtMajhCekZMN1Y1a2NIZ24rRTdEdUNnNEhuZwpST1NLVFBIU3NiUXpYeWRYeUxwWU9vWFc0cG0wM1IzaE1UWUEKPUZLVUwKLS0tLS1FTkQgUEdQIE1FU1NBR0UtLS0tLQ=="
 }
 
 # REMOVE
-$ psparkles rm -addr http://localhost:8080 --id fb692a0247b37cd4e653e760d729e3a1e4d248498afefdc78ebd9d1b2275ebc30922d603c46cc62e1065d587a7bb0787765b40ca51d8ca9455ca12fbc2f5a742
+$ sparkles rm -addr http://localhost:8080 --id 50711b9b-4fb3-4192-affe-73c735174ad8
 
 # validate for example
-$ psparkles get -addr http://localhost:8080 -a testing -e dev
+$ sparkles get -addr http://localhost:8080 -a testing -e dev --id 50711b9b-4fb3-4192-affe-73c735174ad8
 $
 
 ```
