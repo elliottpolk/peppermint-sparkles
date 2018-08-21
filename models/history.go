@@ -1,6 +1,3 @@
-// Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/peppermint-sparkles/models/history.go
-//
 package models
 
 import (
@@ -12,9 +9,9 @@ import (
 )
 
 const (
-	CreateAction  string = "create"
-	UpdateAction  string = "update"
-	ArchiveAction string = "archive"
+	CreateAction string = "create"
+	UpdateAction string = "update"
+	DeleteAction string = "delete"
 )
 
 type Historical struct {

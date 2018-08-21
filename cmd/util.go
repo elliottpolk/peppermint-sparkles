@@ -1,17 +1,10 @@
-// Created by Elliott Polk on 01/02/2018
-// Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/peppermint-sparkles/cmd/util.go
-//
 package cmd
 
 import (
-	"bufio"
-	"io"
 	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
-	"os"
 	"os/user"
 	"regexp"
 	"strings"
@@ -19,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const tag string = "manulife.oa-montreal.peppermint-sparkles.cmd"
+const tag string = "peppermint-sparkles.cmd"
 
 var (
 	schemeExp = regexp.MustCompile(`^(?P<scheme>http(s)?):\/\/`)
@@ -116,32 +109,6 @@ func del(from string) (string, error) {
 	}
 
 	return string(b), nil
-}
-
-func pipe() (string, error) {
-	fi, err := os.Stdin.Stat()
-	if err != nil {
-		return "", errors.Wrap(err, "unable to stat stdin")
-	}
-
-	if fi.Mode()&os.ModeCharDevice != 0 || fi.Size() < 1 {
-		return "", ErrNoPipe
-	}
-
-	buf, res := bufio.NewReader(os.Stdin), make([]byte, 0)
-	for {
-		in, _, err := buf.ReadLine()
-		if err != nil && err == io.EOF {
-			break
-		}
-		res = append(res, in...)
-
-		if len(res) > MaxData {
-			return "", ErrDataTooLarge
-		}
-	}
-
-	return string(res), nil
 }
 
 func osUser() (string, error) {

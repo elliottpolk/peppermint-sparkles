@@ -7,4 +7,4 @@ RUN rm -rf /var/cache/apk/* && \
 WORKDIR /var/lib/peppermint-sparkles
 
 COPY build/bin/* /usr/bin/
-ENTRYPOINT ["/usr/bin/psparkles"]
+ENTRYPOINT ["/usr/bin/sparkles"]

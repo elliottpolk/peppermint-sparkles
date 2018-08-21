@@ -1,20 +1,12 @@
-// Created by Elliott Polk on 25/01/2018
-// Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/peppermint-sparkles/models/secret.go
-//
 package models
 
 import (
-	"crypto/rand"
 	"encoding/json"
-
-	"git.platform.manulife.io/go-common/log"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend"
 
 	"github.com/pkg/errors"
 )
 
-const tag string = "manulife.oa-montreal.peppermint-sparkles.models"
+const tag string = "peppermint-sparkles.models"
 
 type Secret struct {
 	Id      string `json:"id,omitempty"`
@@ -49,14 +41,4 @@ func (s *Secret) MustString() string {
 	}
 
 	return str
-}
-
-func (s *Secret) NewId() string {
-	buf := make([]byte, 1024)
-	if _, err := rand.Read(buf); err != nil {
-		log.Error(tag, err, "unable to read in random data for id generation")
-	}
-
-	//	FIXME ... should really allow for a retry on the random read
-	return backend.Key(s.App, s.Env, string(buf))
 }

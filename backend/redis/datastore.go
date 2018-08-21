@@ -1,7 +1,3 @@
-// Created by Elliott Polk on 23/01/2018
-// Copyright © 2018 Manulife AM. All rights reserved.
-// oa-montreal/peppermint-sparkles/backend/redis/datastore.go
-//
 package redis
 
 import (
@@ -16,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const tag string = "manulife.oa-montreal.peppermint-sparkles.backend.redis"
+const tag string = "peppermint-sparkles.backend.redis"
 
 var ErrInvalidDatastore error = errors.New("no valid datastore")
 
