@@ -30,6 +30,7 @@ var (
 			&EncryptFlag,
 			&TokenFlag,
 			&SecretIdFlag,
+			&InsecureFlag,
 		},
 		Usage: "adds or updates a secret",
 
@@ -105,7 +106,9 @@ var (
 				return cli.Exit(errors.Wrap(err, "unable to retrieve current, logged-in user"), 1)
 			}
 
-			s, err := set(encrypt, token, u.Username, raw, addr)
+			insecure := context.Bool(InsecureFlag.Names()[0])
+
+			s, err := set(encrypt, insecure, token, u.Username, raw, addr)
 			if err != nil {
 				return cli.Exit(errors.Wrap(err, "unable to set secret"), 1)
 			}
@@ -147,7 +150,7 @@ func pipe() (string, error) {
 	return string(res), nil
 }
 
-func set(encrypt bool, token, usr, raw, addr string) (*models.Secret, error) {
+func set(encrypt, insecure bool, token, usr, raw, addr string) (*models.Secret, error) {
 	s, err := models.ParseSecret(raw)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to parse secret")
@@ -178,7 +181,7 @@ func set(encrypt bool, token, usr, raw, addr string) (*models.Secret, error) {
 		service.IdParam:   []string{s.Id},
 	}
 
-	res, err := send(asURL(addr, service.PathSecrets, params.Encode()), s.MustString())
+	res, err := send(asURL(addr, service.PathSecrets, params.Encode()), s.MustString(), insecure)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to send secret")
 	}

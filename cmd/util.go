@@ -78,8 +78,18 @@ func retrieve(from string, insecure bool) (string, error) {
 	return string(b), nil
 }
 
-func send(to, body string) (string, error) {
-	res, err := http.Post(to, http.DetectContentType([]byte(body)), strings.NewReader(body))
+func send(to, body string, insecure bool) (string, error) {
+	client := http.DefaultClient
+	if insecure {
+		client = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+	}
+
+	res, err := client.Post(to, http.DetectContentType([]byte(body)), strings.NewReader(body))
+	// res, err := http.Post(to, http.DetectContentType([]byte(body)), strings.NewReader(body))
 	if err != nil {
 		return "", errors.Wrap(err, "unable to post secret to secrets service")
 	}
