@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -43,8 +44,17 @@ func asURL(addr, path, params string) string {
 	}).String()
 }
 
-func retrieve(from string) (string, error) {
-	res, err := http.Get(from)
+func retrieve(from string, insecure bool) (string, error) {
+	client := http.DefaultClient
+	if insecure {
+		client = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+	}
+
+	res, err := client.Get(from)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to call secrets service")
 	}

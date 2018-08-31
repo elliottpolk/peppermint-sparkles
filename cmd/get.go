@@ -25,6 +25,7 @@ var (
 			&SecretIdFlag,
 			&DecryptFlag,
 			&TokenFlag,
+			&InsecureFlag,
 		},
 		Usage: "retrieves secrets",
 		Action: func(context *cli.Context) error {
@@ -46,7 +47,9 @@ var (
 				service.EnvParam: []string{context.String(AppEnvFlag.Names()[0])},
 			}
 
-			s, err := get(decrypt, token, addr, context.String(SecretIdFlag.Names()[0]), params)
+			insecure := context.Bool(InsecureFlag.Names()[0])
+
+			s, err := get(decrypt, insecure, token, addr, context.String(SecretIdFlag.Names()[0]), params)
 			if err != nil {
 				return cli.Exit(errors.Wrap(err, "unable to retrieve secert"), 1)
 			}
@@ -57,7 +60,7 @@ var (
 	}
 )
 
-func get(decrypt bool, token, addr, id string, params *url.Values) (*models.Secret, error) {
+func get(decrypt, insecure bool, token, addr, id string, params *url.Values) (*models.Secret, error) {
 	if len(id) < 1 {
 		return nil, errors.New("a valid secret ID must be provided")
 	}
@@ -70,7 +73,7 @@ func get(decrypt bool, token, addr, id string, params *url.Values) (*models.Secr
 		return nil, errors.New("a valid secret environment must be provided")
 	}
 
-	raw, err := retrieve(asURL(addr, fmt.Sprintf("%s/%s", service.PathSecrets, id), params.Encode()))
+	raw, err := retrieve(asURL(addr, fmt.Sprintf("%s/%s", service.PathSecrets, id), params.Encode()), insecure)
 	if err != nil {
 		if err.Error() == "no valid secret" {
 			return nil, err

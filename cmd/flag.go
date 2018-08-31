@@ -55,4 +55,11 @@ var (
 		Usage:   "secrets service address",
 		EnvVars: []string{"PSPARKLES_ADDR"},
 	}
+
+	InsecureFlag = cli.BoolFlag {
+		Name:  "insecure",
+		Aliases: []string{"k"},
+		Value: false,
+		Usage: "(TLS) this option explicitly allows to perform \"insecure\" SSL connections",
+	}
 )
