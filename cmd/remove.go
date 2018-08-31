@@ -20,6 +20,7 @@ var (
 			&AppNameFlag,
 			&AppEnvFlag,
 			&SecretIdFlag,
+			&InsecureFlag,
 		},
 		Usage: "deletes a secret",
 		Action: func(context *cli.Context) error {
@@ -37,7 +38,9 @@ var (
 				service.EnvParam:  []string{context.String(AppEnvFlag.Names()[0])},
 			}
 
-			if err := rm(id, addr, params); err != nil {
+			insecure := context.Bool(InsecureFlag.Names()[0])
+
+			if err := rm(insecure, id, addr, params); err != nil {
 				return cli.Exit(errors.Wrap(err, "unable to remove secret"), 1)
 			}
 
@@ -46,7 +49,7 @@ var (
 	}
 )
 
-func rm(id, addr string, params *url.Values) error {
+func rm(insecure bool, id, addr string, params *url.Values) error {
 	if len(id) < 1 {
 		return errors.New("a valid secret ID must be provided")
 	}
@@ -59,7 +62,7 @@ func rm(id, addr string, params *url.Values) error {
 		return errors.New("a valid secret environment must be provided")
 	}
 
-	if _, err := del(asURL(addr, fmt.Sprintf("%s/%s", service.PathSecrets, id), params.Encode())); err != nil {
+	if _, err := del(asURL(addr, fmt.Sprintf("%s/%s", service.PathSecrets, id), params.Encode()), insecure); err != nil {
 		return err
 	}
 

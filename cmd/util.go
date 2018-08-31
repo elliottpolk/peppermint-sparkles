@@ -89,7 +89,6 @@ func send(to, body string, insecure bool) (string, error) {
 	}
 
 	res, err := client.Post(to, http.DetectContentType([]byte(body)), strings.NewReader(body))
-	// res, err := http.Post(to, http.DetectContentType([]byte(body)), strings.NewReader(body))
 	if err != nil {
 		return "", errors.Wrap(err, "unable to post secret to secrets service")
 	}
@@ -107,13 +106,22 @@ func send(to, body string, insecure bool) (string, error) {
 	return string(b), nil
 }
 
-func del(from string) (string, error) {
+func del(from string, insecure bool) (string, error) {
 	req, err := http.NewRequest(http.MethodDelete, from, nil)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to create DELETE http request")
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	client := http.DefaultClient
+	if insecure {
+		client = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+	}
+
+	res, err := client.Do(req)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to perform DELETE request")
 	}
