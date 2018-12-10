@@ -18,27 +18,66 @@ This is a fork and extension of the open-source project [confgr](https://github.
 
 ## Peppermint Sparkles Helper
 
-A Docker container has been created for helping with integration patterns. Usage and examples are available for the following platforms:
+A Docker image has been created for helping with integration patterns. Usage and examples are available for the following platforms:
 
 * [Concourse](ci/README.md)
 
 ---
 
-## Building
-
-The simplest way to build is to use [**_honey-do_**](https://github.com/elliottpolk/honey-do) and **_Docker_**. By default, running **_honey clean build_** will build the binary (for Linux distros).
-
-For manual builds, this has a dependency on the [Go](https://golang.org) toolchain. Ensure Go is installed or you have the appropriate _Docker_ image ([golang:latest](https://hub.docker.com/_/golang/)).
+## Builds
+The service currently uses the **(optional)** tool ```make``` for builds. The _golang Docker image_ has this pre-installed. To build:
 
 ```bash
-# localhost install of go
-$ go build -o $GOPATH/bin/sparkles -ldflags "-X main.version=v3.0.0"
+# ensure the below commands will be run from the project dir
+$ cd $GOPATH/src/git.platform.manulife.io/oa-montreal/peppermint-sparkles
 
-# Docker example
-$ docker run --rm -it -v $GOPATH:/go -w /go/src/git.platform.manulife.io/oa-montreal/peppermint-sparkles golang:latest /bin/bash -c 'go build -o $GOPATH/bin/sparkles -ldflags "-X main.version=v3.0.0"'
+# the default targets are 'clean build'
+$ make
+
+# to build and package for deployment to PCF or Artifactory
+$ make clean build package
+
+# using the Go Docker image
+$ docker run --rm -it -v "${GOPATH}":/go -w /go/src/git.platform.manulife.io/oa-montreal/${PWD##*/} golang:latest /bin/sh -c 'make'
+
+# to build and package for deployment to PCF or Artifactory
+$ docker run --rm -it -v "${GOPATH}":/go -w /go/src/git.platform.manulife.io/oa-montreal/${PWD##*/} golang:latest /bin/sh -c 'make clean build package'
+
 ```
 
-For additional build help and ideas, review the `Honeyfile.yml`
+**NOTE:** the default build is for **_Linux_** environments. The ```GOOS=<environment>``` must be specified for OS-specific builds.
+
+```bash
+
+# macOS
+$ GOOS=darwin make
+# OR
+$ docker run --rm -it -v "${GOPATH}":/go -w /go/src/git.platform.manulife.io/oa-montreal/${PWD##*/} golang:latest /bin/sh -c 'GOOS=darwin make'
+
+# Windows
+$ GOOS=windows make
+# OR
+$ docker run --rm -it -v "${GOPATH}":/go -w /go/src/git.platform.manulife.io/oa-montreal/${PWD##*/} golang:latest /bin/sh -c 'GOOS=windows make'
+```
+
+---
+
+### Testing
+
+There are 2 types of tests, unit and integration. The **unit tests** can be run on any platform, but the **integration tests** require a machine with **_Docker_** installed as it spins up containers for some dependencies.
+
+```bash
+
+# unit tests
+$ make clean unit-tests
+
+# integration tests
+# this make take some time to run as there are intentional delays to allow for containers to boot, though longer than 10 mins would be too long a run time
+$ make clean integration-tests
+
+# all
+$ make clean all-tests
+```
 
 ---
 
@@ -56,7 +95,7 @@ USAGE:
    sparkles [global options] command [command options] [arguments...]
 
 VERSION:
-   v3.0.0
+   v3.2.0
 
 COMMANDS:
      get, ls, list                  retrieves secrets
