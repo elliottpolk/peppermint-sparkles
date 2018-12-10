@@ -35,7 +35,7 @@ For manual builds, this has a dependency on the [Go](https://golang.org) toolcha
 $ go build -o $GOPATH/bin/sparkles -ldflags "-X main.version=v3.0.0"
 
 # Docker example
-$ docker run --rm -it -v $GOPATH:/go -w /go/src/git.platform.io/oa-montreal/peppermint-sparkles golang:latest /bin/bash -c 'go build -o $GOPATH/bin/sparkles -ldflags \"-X main.version=v3.0.0\"'
+$ docker run --rm -it -v $GOPATH:/go -w /go/src/git.platform.manulife.io/oa-montreal/peppermint-sparkles golang:latest /bin/bash -c 'go build -o $GOPATH/bin/sparkles -ldflags "-X main.version=v3.0.0"'
 ```
 
 For additional build help and ideas, review the `Honeyfile.yml`
