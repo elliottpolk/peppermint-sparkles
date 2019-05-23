@@ -13,10 +13,10 @@ import (
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto/pgp"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/models"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
 
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"gopkg.in/urfave/cli.v2"
+	cli "gopkg.in/urfave/cli.v2"
 )
 
 var (
@@ -158,7 +158,7 @@ func set(encrypt, insecure bool, token, usr, raw, addr string) (*models.Secret, 
 
 	// ensure the secret has an ID set
 	if len(s.Id) < 1 {
-		s.Id = uuid.GetV4()
+		s.Id = uuid.New().String()
 	}
 
 	if encrypt {

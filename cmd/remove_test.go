@@ -13,13 +13,13 @@ import (
 	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/models"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
 
 	bolt "github.com/coreos/bbolt"
+	"github.com/google/uuid"
 )
 
 func TestRm(t *testing.T) {
-	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	repo := fmt.Sprintf("test_%s.db", uuid.New().String())
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
 		t.Fatal(err)
@@ -31,7 +31,7 @@ func TestRm(t *testing.T) {
 		}
 	}()
 
-	id, app, env, content, usr := uuid.GetV4(), "dummy", "test", "notSuperS3cret", "tester"
+	id, app, env, content, usr := uuid.New().String(), "dummy", "test", "notSuperS3cret", "tester"
 
 	sample := fmt.Sprintf(`{"id":"%s","app_name":"%s","env":"%s","content":"%s"}`, id, app, env, content)
 	src, err := models.ParseSecret(sample)
@@ -79,7 +79,7 @@ func TestRm(t *testing.T) {
 }
 
 func TestRmInsecure(t *testing.T) {
-	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	repo := fmt.Sprintf("test_%s.db", uuid.New().String())
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
 		t.Fatal(err)
@@ -91,7 +91,7 @@ func TestRmInsecure(t *testing.T) {
 		}
 	}()
 
-	id, app, env, content, usr := uuid.GetV4(), "dummy", "test", "notSuperS3cret", "tester"
+	id, app, env, content, usr := uuid.New().String(), "dummy", "test", "notSuperS3cret", "tester"
 
 	sample := fmt.Sprintf(`{"id":"%s","app_name":"%s","env":"%s","content":"%s"}`, id, app, env, content)
 	src, err := models.ParseSecret(sample)

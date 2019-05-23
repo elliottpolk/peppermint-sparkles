@@ -15,13 +15,14 @@ import (
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto/pgp"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/models"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
 
 	bolt "github.com/coreos/bbolt"
+	"github.com/google/uuid"
 )
 
 func TestGet(t *testing.T) {
-	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+
+	repo := fmt.Sprintf("test_%s.db", uuid.New().String())
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
 		t.Fatal(err)
@@ -39,7 +40,7 @@ func TestGet(t *testing.T) {
 
 	}
 
-	id, app, env, content := uuid.GetV4(), "dummy", "test", "notSuperS3cret"
+	id, app, env, content := uuid.New().String(), "dummy", "test", "notSuperS3cret"
 
 	crypter := &pgp.Crypter{Token: []byte(tok)}
 	cypher, err := crypter.Encrypt([]byte(content))
@@ -109,7 +110,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestGetInsecure(t *testing.T) {
-	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	repo := fmt.Sprintf("test_%s.db", uuid.New().String())
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
 		t.Fatal(err)
@@ -127,7 +128,7 @@ func TestGetInsecure(t *testing.T) {
 
 	}
 
-	id, app, env, content := uuid.GetV4(), "dummy", "test", "notSuperS3cret"
+	id, app, env, content := uuid.New().String(), "dummy", "test", "notSuperS3cret"
 
 	crypter := &pgp.Crypter{Token: []byte(tok)}
 	cypher, err := crypter.Encrypt([]byte(content))
