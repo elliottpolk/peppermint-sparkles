@@ -33,7 +33,7 @@ func (c *Crypter) Encrypt(text []byte) ([]byte, error) {
 	}
 
 	cfg := &packet.Config{
-		DefaultHash:            crypto.SHA256,
+		DefaultHash:            crypto.SHA512,
 		DefaultCipher:          packet.CipherAES256,
 		DefaultCompressionAlgo: packet.CompressionZLIB,
 		CompressionConfig: &packet.CompressionConfig{
