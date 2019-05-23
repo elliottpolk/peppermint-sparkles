@@ -29,27 +29,27 @@ var (
 		},
 		Usage: "retrieves secrets",
 		Action: func(context *cli.Context) error {
-			addr := context.String(AddrFlag.Names()[0])
+			addr := context.String(AddrFlag.Name)
 			if len(addr) < 1 {
 				cli.ShowCommandHelpAndExit(context, context.Command.FullName(), 1)
 				return nil
 			}
 
-			token := context.String(TokenFlag.Names()[0])
-			decrypt := context.Bool(DecryptFlag.Names()[0])
+			token := context.String(TokenFlag.Name)
+			decrypt := context.Bool(DecryptFlag.Name)
 
 			if decrypt && len(token) < 1 {
 				return cli.Exit(errors.New("decrypt token must be specified in order to decrypt"), 1)
 			}
 
 			params := &url.Values{
-				service.AppParam: []string{context.String(AppNameFlag.Names()[0])},
-				service.EnvParam: []string{context.String(AppEnvFlag.Names()[0])},
+				service.AppParam: []string{context.String(AppNameFlag.Name)},
+				service.EnvParam: []string{context.String(AppEnvFlag.Name)},
 			}
 
-			insecure := context.Bool(InsecureFlag.Names()[0])
+			insecure := context.Bool(InsecureFlag.Name)
 
-			s, err := get(decrypt, insecure, token, addr, context.String(SecretIdFlag.Names()[0]), params)
+			s, err := get(decrypt, insecure, token, addr, context.String(SecretIdFlag.Name), params)
 			if err != nil {
 				return cli.Exit(errors.Wrap(err, "unable to retrieve secert"), 1)
 			}

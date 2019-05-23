@@ -3,8 +3,7 @@ package crypto
 import (
 	"encoding/base64"
 
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
-
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -14,7 +13,7 @@ type Crypter interface {
 }
 
 func NewToken() (string, error) {
-	token := uuid.GetV4()
+	token := uuid.New().String()
 	if len(token) < 1 {
 		return "", errors.New("UUID produced empty string")
 	}

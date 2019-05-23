@@ -10,16 +10,16 @@ import (
 	"testing"
 
 	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
 
 	bolt "github.com/coreos/bbolt"
+	"github.com/google/uuid"
 )
 
 func TestPost(t *testing.T) {
 	port := freeport()
 
-	sample := fmt.Sprintf(`{"id":"%s","app_name":"dummy","env":"test","content":"notSuperS3cret"}`, uuid.GetV4())
-	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	sample := fmt.Sprintf(`{"id":"%s","app_name":"dummy","env":"test","content":"notSuperS3cret"}`, uuid.New().String())
+	repo := fmt.Sprintf("test_%s.db", uuid.New().String())
 
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
@@ -68,7 +68,7 @@ func TestPost(t *testing.T) {
 func TestInvalidIdPost(t *testing.T) {
 	port := freeport()
 
-	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	repo := fmt.Sprintf("test_%s.db", uuid.New().String())
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
 		t.Fatal(err)
@@ -109,13 +109,13 @@ func TestInvalidIdPost(t *testing.T) {
 		},
 		&sample{
 			name:    "invalid_app",
-			value:   fmt.Sprintf(`{"id":"%s","env":"test","content":"notSuperS3cret"}`, uuid.GetV4()),
+			value:   fmt.Sprintf(`{"id":"%s","env":"test","content":"notSuperS3cret"}`, uuid.New().String()),
 			code:    http.StatusBadRequest,
 			message: "an app name for the secret must be specified",
 		},
 		&sample{
 			name:    "invalid_env",
-			value:   fmt.Sprintf(`{"id":"%s","app_name":"dummy","content":"notSuperS3cret"}`, uuid.GetV4()),
+			value:   fmt.Sprintf(`{"id":"%s","app_name":"dummy","content":"notSuperS3cret"}`, uuid.New().String()),
 			code:    http.StatusBadRequest,
 			message: "an environment for the secret must be specified",
 		},

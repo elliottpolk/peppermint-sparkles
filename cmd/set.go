@@ -35,13 +35,13 @@ var (
 		Usage: "adds or updates a secret",
 
 		Action: func(context *cli.Context) error {
-			addr := context.String(AddrFlag.Names()[0])
+			addr := context.String(AddrFlag.Name)
 			if len(addr) < 1 {
 				cli.ShowCommandHelpAndExit(context, context.Command.FullName(), 1)
 				return nil
 			}
 
-			raw, f := context.String(SecretFlag.Names()[0]), context.String(SecretFileFlag.Names()[0])
+			raw, f := context.String(SecretFlag.Name), context.String(SecretFileFlag.Name)
 			if len(raw) > 0 && len(f) > 0 {
 				return cli.Exit(errors.New("only 1 input method is allowed"), 1)
 			}
@@ -86,8 +86,8 @@ var (
 				raw, tick = r, +1
 			}
 
-			encrypt := context.Bool(EncryptFlag.Names()[0])
-			token := context.String(TokenFlag.Names()[0])
+			encrypt := context.Bool(EncryptFlag.Name)
+			token := context.String(TokenFlag.Name)
 			if encrypt {
 				if len(token) < 1 {
 					//	attempt to generate a token if one not provided, erroring and exiting
@@ -106,7 +106,7 @@ var (
 				return cli.Exit(errors.Wrap(err, "unable to retrieve current, logged-in user"), 1)
 			}
 
-			insecure := context.Bool(InsecureFlag.Names()[0])
+			insecure := context.Bool(InsecureFlag.Name)
 
 			s, err := set(encrypt, insecure, token, u.Username, raw, addr)
 			if err != nil {

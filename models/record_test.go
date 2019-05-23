@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
 
-	"github.com/coreos/bbolt"
+	bolt "github.com/coreos/bbolt"
+	"github.com/google/uuid"
 )
 
 func TestRecord(t *testing.T) {
@@ -26,7 +26,7 @@ func TestRecord(t *testing.T) {
  "status": "active"
 }`
 
-	tmpRepo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	tmpRepo := fmt.Sprintf("test_%s.db", uuid.New().String())
 
 	ds, err := fileds.Open(tmpRepo, bolt.DefaultOptions)
 	if err != nil {

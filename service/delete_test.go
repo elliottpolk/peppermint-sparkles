@@ -12,15 +12,15 @@ import (
 
 	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/models"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
 
 	bolt "github.com/coreos/bbolt"
+	"github.com/google/uuid"
 )
 
 func TestDelete(t *testing.T) {
 	port := freeport()
 
-	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	repo := fmt.Sprintf("test_%s.db", uuid.New().String())
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
 		t.Fatal(err)
@@ -34,7 +34,7 @@ func TestDelete(t *testing.T) {
 
 	app, env, usr := "dummy", "test", "tester"
 
-	sample := fmt.Sprintf(`{"id":"%s","app_name":"%s","env":"%s","content":"notSuperS3cret"}`, uuid.GetV4(), app, env)
+	sample := fmt.Sprintf(`{"id":"%s","app_name":"%s","env":"%s","content":"notSuperS3cret"}`, uuid.New().String(), app, env)
 	src, err := models.ParseSecret(sample)
 	if err != nil {
 		t.Fatal(err)

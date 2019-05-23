@@ -12,16 +12,16 @@ import (
 
 	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/models"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
 
 	bolt "github.com/coreos/bbolt"
+	"github.com/google/uuid"
 )
 
 func TestGet(t *testing.T) {
 	port := freeport()
 
-	sample := fmt.Sprintf(`{"id":"%s","app_name":"dummy","env":"test","content":"notSuperS3cret"}`, uuid.GetV4())
-	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	sample := fmt.Sprintf(`{"id":"%s","app_name":"dummy","env":"test","content":"notSuperS3cret"}`, uuid.New().String())
+	repo := fmt.Sprintf("test_%s.db", uuid.New().String())
 
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
@@ -94,7 +94,7 @@ func TestGet(t *testing.T) {
 func TestInvalidGet(t *testing.T) {
 	port := freeport()
 
-	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	repo := fmt.Sprintf("test_%s.db", uuid.New().String())
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
 		t.Fatal(err)
@@ -106,7 +106,7 @@ func TestInvalidGet(t *testing.T) {
 		}
 	}()
 
-	raw := fmt.Sprintf(`{"id":"%s","app_name":"dummy","env":"test","content":"notSuperS3cret"}`, uuid.GetV4())
+	raw := fmt.Sprintf(`{"id":"%s","app_name":"dummy","env":"test","content":"notSuperS3cret"}`, uuid.New().String())
 	src, err := models.ParseSecret(raw)
 	if err != nil {
 		t.Fatal(err)
@@ -149,7 +149,7 @@ func TestInvalidGet(t *testing.T) {
 	samples := []*sample{
 		&sample{
 			name:    "invalid_id",
-			from:    fmt.Sprintf("http://localhost:%d%s/%s?%s=%s&%s=%s", port, PathSecrets, uuid.GetV4(), AppParam, src.App, EnvParam, src.Env),
+			from:    fmt.Sprintf("http://localhost:%d%s/%s?%s=%s&%s=%s", port, PathSecrets, uuid.New().String(), AppParam, src.App, EnvParam, src.Env),
 			code:    http.StatusNotFound,
 			message: "file not found",
 		},

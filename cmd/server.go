@@ -91,11 +91,11 @@ var (
 				err error
 			)
 
-			dst := context.String(DatastoreTypeFlag.Names()[0])
+			dst := context.String(DatastoreTypeFlag.Name)
 
 			switch dst {
 			case backend.Redis:
-				opts := &redis.Options{Addr: context.String(DatastoreAddrFlag.Names()[0])}
+				opts := &redis.Options{Addr: context.String(DatastoreAddrFlag.Name)}
 
 				//	check if running in PCF pull the vcap services if available
 				services, err := vcap.GetServices()
@@ -120,7 +120,7 @@ var (
 			case backend.File:
 
 				//	FIXME ... include / handle additional bolt options (e.g. timeout, etc)
-				fname := context.String(DatastoreFileFlag.Names()[0])
+				fname := context.String(DatastoreFileFlag.Name)
 				if ds, err = fileds.Open(fname, bolt.DefaultOptions); err != nil {
 					return cli.Exit(errors.Wrap(err, "unable to open connection to datastore"), 1)
 				}
@@ -139,7 +139,7 @@ var (
 
 			//	start HTTPS listener in a seperate go routine since it is a blocking func
 			go func() {
-				cert, key := context.String(TlsCertFlag.Names()[0]), context.String(TlsKeyFlag.Names()[0])
+				cert, key := context.String(TlsCertFlag.Name), context.String(TlsKeyFlag.Name)
 				if len(cert) < 1 || len(key) < 1 {
 					return
 				}
@@ -154,7 +154,7 @@ var (
 					return
 				}
 
-				addr := fmt.Sprintf(":%s", context.String(TlsListenPortFlag.Names()[0]))
+				addr := fmt.Sprintf(":%s", context.String(TlsListenPortFlag.Name))
 
 				log.Debug(tag, "starting HTTPS listener")
 				log.Fatal(tag, http.ListenAndServeTLS(addr, cert, key, mux))
@@ -162,7 +162,7 @@ var (
 
 			log.Debug(tag, "starting HTTP listener")
 
-			addr := fmt.Sprintf(":%s", context.String(StdListenPortFlag.Names()[0]))
+			addr := fmt.Sprintf(":%s", context.String(StdListenPortFlag.Name))
 			log.Fatal(tag, http.ListenAndServe(addr, mux))
 
 			return nil

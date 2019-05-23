@@ -12,13 +12,13 @@ import (
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto/pgp"
 	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/uuid"
 
 	bolt "github.com/coreos/bbolt"
+	"github.com/google/uuid"
 )
 
 func TestSet(t *testing.T) {
-	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	repo := fmt.Sprintf("test_%s.db", uuid.New().String())
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
 		t.Fatal(err)
@@ -80,7 +80,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestSetInsecure(t *testing.T) {
-	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	repo := fmt.Sprintf("test_%s.db", uuid.New().String())
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
 		t.Fatal(err)
@@ -149,7 +149,7 @@ func TestSetInsecure(t *testing.T) {
 }
 
 func TestInvalidSet(t *testing.T) {
-	repo := fmt.Sprintf("test_%s.db", uuid.GetV4())
+	repo := fmt.Sprintf("test_%s.db", uuid.New().String())
 	ds, err := fileds.Open(repo, bolt.DefaultOptions)
 	if err != nil {
 		t.Fatal(err)

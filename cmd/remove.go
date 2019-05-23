@@ -24,8 +24,8 @@ var (
 		},
 		Usage: "deletes a secret",
 		Action: func(context *cli.Context) error {
-			addr := context.String(AddrFlag.Names()[0])
-			id := context.String(SecretIdFlag.Names()[0])
+			addr := context.String(AddrFlag.Name)
+			id := context.String(SecretIdFlag.Name)
 
 			u, err := user.Current()
 			if err != nil {
@@ -34,11 +34,11 @@ var (
 
 			params := &url.Values{
 				service.UserParam: []string{u.Username},
-				service.AppParam:  []string{context.String(AppNameFlag.Names()[0])},
-				service.EnvParam:  []string{context.String(AppEnvFlag.Names()[0])},
+				service.AppParam:  []string{context.String(AppNameFlag.Name)},
+				service.EnvParam:  []string{context.String(AppEnvFlag.Name)},
 			}
 
-			insecure := context.Bool(InsecureFlag.Names()[0])
+			insecure := context.Bool(InsecureFlag.Name)
 
 			if err := rm(insecure, id, addr, params); err != nil {
 				return cli.Exit(errors.Wrap(err, "unable to remove secret"), 1)
