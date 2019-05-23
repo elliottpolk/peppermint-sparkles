@@ -2,10 +2,13 @@ package pgp
 
 import (
 	"bytes"
+	"crypto"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
+
+	"golang.org/x/crypto/openpgp/packet"
 
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
@@ -29,7 +32,17 @@ func (c *Crypter) Encrypt(text []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	ptxtWriter, err := openpgp.SymmetricallyEncrypt(encoder, c.Token, nil, nil)
+	cfg := &packet.Config{
+		DefaultHash:            crypto.SHA256,
+		DefaultCipher:          packet.CipherAES256,
+		DefaultCompressionAlgo: packet.CompressionZLIB,
+		CompressionConfig: &packet.CompressionConfig{
+			Level: 9,
+		},
+		RSABits: 15360,
+	}
+
+	ptxtWriter, err := openpgp.SymmetricallyEncrypt(encoder, c.Token, nil, cfg)
 	if err != nil {
 		return nil, err
 	}

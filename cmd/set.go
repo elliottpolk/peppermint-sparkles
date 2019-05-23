@@ -130,7 +130,7 @@ func pipe() (string, error) {
 		return "", errors.Wrap(err, "unable to stat stdin")
 	}
 
-	if fi.Mode()&os.ModeCharDevice != 0 || fi.Size() < 1 {
+	if fi.Mode()&os.ModeCharDevice != 0 {
 		return "", ErrNoPipe
 	}
 
