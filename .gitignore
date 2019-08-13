@@ -29,3 +29,4 @@ confgr.db
 *.credentials.*
 
 *.DS_Store
+.vscode
