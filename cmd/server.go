@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"git.platform.manulife.io/go-common/log"
 	"git.platform.manulife.io/go-common/pcf/vcap"
@@ -154,10 +156,37 @@ var (
 					return
 				}
 
-				addr := fmt.Sprintf(":%s", context.String(TlsListenPortFlag.Name))
+				svr := &http.Server{
+					Addr:    fmt.Sprintf(":%s", context.String(TlsListenPortFlag.Name)),
+					Handler: mux,
+					TLSConfig: &tls.Config{
+						PreferServerCipherSuites: true,
+						CurvePreferences: []tls.CurveID{
+							tls.CurveP256,
+							tls.X25519,
+						},
+						MinVersion: tls.VersionTLS12,
+						CipherSuites: []uint16{
+							tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+							tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+							tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+							tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+							tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+							tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+
+							// excluding due to no forward secrecy, but leaving
+							// as it might be necessary for some clients
+							// tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+							// tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+						},
+					},
+					ReadTimeout:  10 * time.Second,
+					WriteTimeout: 10 * time.Second,
+					IdleTimeout:  20 * time.Second,
+				}
 
 				log.Debug(tag, "starting HTTPS listener")
-				log.Fatal(tag, http.ListenAndServeTLS(addr, cert, key, mux))
+				log.Fatal(tag, svr.ListenAndServeTLS(cert, key))
 			}()
 
 			log.Debug(tag, "starting HTTP listener")
