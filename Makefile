@@ -4,13 +4,14 @@ PKG=git.platform.manulife.io/oa-montreal/peppermint-sparkles
 BUILD_IMAGE=golang:latest
 VERSION=`cat .version`
 GOOS?=linux
+PACKAGER?=tar
 
 M = $(shell printf "\033[34;1m◉\033[0m")
 
 default: clean build ;                                              @ ## defaulting to clean and build
 
 .PHONY: all
-all: clean unit-tests test-integration test-all build package 
+all: clean unit-tests test-integration test-all build package
 
 .PHONY: build
 build: ; $(info $(M) building ...)                                  @ ## build the binary
@@ -19,7 +20,27 @@ build: ; $(info $(M) building ...)                                  @ ## build t
 
 .PHONY: package
 package: ; $(info $(M) packaging ...)                               @ ## package up the binary for distribution to Artifactory or PCF
+ifeq ($(PACKAGER),zip)
+	@cd ./build/bin/ && zip $(BIN).zip $(shell ls -A ./build/bin) && cd -
+else
 	@cd ./build/bin/ && tar jcvf $(BIN).tar.bz2 $(shell ls -A ./build/bin) && cd -
+endif
+
+.PHONY: distro
+distro: ;                                          					@ ## build and package in a distro dir for each OS
+	@printf "\033[34;1m◉\033[0m cleaning up ...\n" \
+		&& rm -vrf dist; mkdir dist
+	@printf "\033[34;1m◉\033[0m building for Linux ...\n" \
+		&& GOOS=linux $(MAKE) clean build package \
+		&& mv ./build/bin/$(BIN).tar.bz2 dist/peppermint-sparkles-v$(VERSION).linux.tar.bz2
+	@printf "\033[34;1m◉\033[0m building for macOS ...\n" \
+		&& GOOS=darwin $(MAKE) clean build package \
+		&& mv ./build/bin/$(BIN).tar.bz2 dist/peppermint-sparkles-v$(VERSION).macos.tar.bz2
+	@printf "\033[34;1m◉\033[0m building for Windows ...\n" \
+		&& GOOS=windows $(MAKE) clean build \
+		&& $(MAKE) package && mv ./build/bin/$(BIN).tar.bz2 dist/peppermint-sparkles-v$(VERSION).windows.tar.bz2 \
+		&& PACKAGER=zip $(MAKE) package && mv ./build/bin/$(BIN).zip dist/peppermint-sparkles-v$(VERSION).windows.zip
+	@$(MAKE) clean
 
 .PHONY: install
 install: ; $(info $(M) installing locally...)                       @ ## install the binary locally

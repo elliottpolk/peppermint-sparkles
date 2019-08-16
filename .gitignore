@@ -30,3 +30,4 @@ confgr.db
 
 *.DS_Store
 .vscode
+dist/
