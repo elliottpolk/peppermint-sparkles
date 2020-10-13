@@ -2,9 +2,15 @@
 BIN=sparkles
 PKG=git.platform.manulife.io/oa-montreal/peppermint-sparkles
 BUILD_IMAGE=golang:latest
-VERSION=`cat .version`
+VERSION=$(shell cat .version)
 GOOS?=linux
 PACKAGER?=tar
+
+# docker vars
+DOCKER_GRADLE_VER=$(shell cat ./docker/peppermint-sparkles-helper/gradle.version)
+DOCKER_MAVEN_VER=$(shell cat ./docker/peppermint-sparkles-helper/maven.version)
+DOCKER_HELPER_IMG=peppermint-sparkles-helper
+DOCKER_ARTIFACTORY=docker.artifactory.platform.manulife.io
 
 M = $(shell printf "\033[34;1m◉\033[0m")
 
@@ -60,6 +66,26 @@ test-all: unit-tests test-integration ;                             @ ## run all
 .PHONY: clean
 clean: ; $(info $(M) running clean ...)                             @ ## clean up the old build dir
 	@rm -vrf build
+
+.PHONY: docker-helper
+docker-helper: docker-helper-gradle docker-helper-maven docker-helper-push
+
+.PHONY: docker-helper-gradle
+docker-helper-gradle: ; $(info $(M) running docker helper gradle...) @ ## build the docker helper gradle image
+	@cd ./docker/$(DOCKER_HELPER_IMG)/ && \
+		docker build -t $(DOCKER_HELPER_IMG):$(DOCKER_GRADLE_VER)-gradle -f gradle.Dockerfile .
+		docker tag $(DOCKER_HELPER_IMG):$(DOCKER_GRADLE_VER)-gradle $(DOCKER_ARTIFACTORY)/$(DOCKER_HELPER_IMG):$(DOCKER_GRADLE_VER)-gradle
+
+.PHONY: docker-helper-maven
+docker-helper-maven: ; $(info $(M) running docker helper maven...)   @ ## build the docker helper gradle image
+	@cd ./docker/$(DOCKER_HELPER_IMG)/ && \
+		docker build -t $(DOCKER_HELPER_IMG):$(DOCKER_MAVEN_VER)-maven -f maven.Dockerfile .
+		docker tag $(DOCKER_HELPER_IMG):$(DOCKER_MAVEN_VER)-maven $(DOCKER_ARTIFACTORY)/$(DOCKER_HELPER_IMG):$(DOCKER_MAVEN_VER)-maven
+
+.PHONY: docker-helper-push
+docker-helper-push: ; $(info $(M) running docker helper push...)   @ ## push the docker helper images to artifactory
+	@docker push $(DOCKER_ARTIFACTORY)/$(DOCKER_HELPER_IMG):$(DOCKER_GRADLE_VER)-gradle
+	@docker push $(DOCKER_ARTIFACTORY)/$(DOCKER_HELPER_IMG):$(DOCKER_MAVEN_VER)-maven
 
 .PHONY: help
 help:
