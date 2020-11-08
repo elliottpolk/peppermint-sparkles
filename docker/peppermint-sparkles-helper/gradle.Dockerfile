@@ -1,4 +1,4 @@
-FROM openjdk:8-jdk-slim-buster
+FROM openjdk:slim-buster
 LABEL maintainer Elliott Polk <benjamin_elliott_polk@manulifeam.com>
 
 RUN mkdir -p /root/.gnupg \
