@@ -12,12 +12,17 @@ RUN  apt-get update && \
 		gnupg \
 		curl \
 		wget \
-		fastjar \
-		nodejs \
-		npm
+		fastjar
+
+# nodejs install
+COPY ./node_setup_15.x.sh /tmp
+RUN echo 'prepping node install because zscaler..... sigh....' \
+	&& chmod +x /tmp/node_setup_15.x.sh \
+	&& /tmp/node_setup_15.x.sh \
+	&& rm /tmp/node_setup_15.x.sh \
+	&& apt-get install -y nodejs
 
 # install cf tools
-# RUN wget -O /tmp/cf-cli.deb "https://cli.run.pivotal.io/stable?release=debian64&source=github" && \
 RUN wget --no-check-certificate -O /tmp/cf-cli.deb "https://cli.run.pivotal.io/stable?release=debian64&source=github" && \
     dpkg -i /tmp/cf-cli.deb && \
     apt-get install -f
@@ -29,7 +34,8 @@ ARG GRADLE_CHECKSUM=23e7d37e9bb4f8dabb8a3ea7fdee9dd0428b9b1a71d298aefd65b11dccea
 RUN set -o errexit -o nounset \
 	&& mkdir -p /opt \
 	&& echo "Downloading gradle" \
-	&& wget --no-verbose --output-document=gradle.zip "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" \
+	#&& wget --no-verbose --output-document=gradle.zip "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" \
+	&& wget --no-verbose --output-document=gradle.zip --no-check-certificate "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" \
 	&& echo "Checksum validation" \
 	&& echo "${GRADLE_CHECKSUM} *gradle.zip" | sha256sum -c - \
 	&& echo "Installing gradle" \
