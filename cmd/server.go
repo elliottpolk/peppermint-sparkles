@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"crypto/tls"
@@ -7,12 +7,13 @@ import (
 	"os"
 	"time"
 
-	"git.platform.manulife.io/go-common/log"
-	"git.platform.manulife.io/go-common/pcf/vcap"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend"
-	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
-	redisds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/redis"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
+	"github.com/manulife-gwam/peppermint-sparkles/backend"
+	fileds "github.com/manulife-gwam/peppermint-sparkles/backend/file"
+	redisds "github.com/manulife-gwam/peppermint-sparkles/backend/redis"
+	"github.com/manulife-gwam/peppermint-sparkles/internal/pcf/vcap"
+	"github.com/manulife-gwam/peppermint-sparkles/service"
+
+	log "github.com/sirupsen/logrus"
 
 	bolt "github.com/coreos/bbolt"
 	"github.com/go-redis/redis"
@@ -132,7 +133,7 @@ var (
 			}
 
 			defer ds.Close()
-			log.Debug(tag, "datastore opened")
+			log.Debug("datastore opened")
 
 			mux := http.NewServeMux()
 
@@ -147,12 +148,12 @@ var (
 				}
 
 				if _, err := os.Stat(cert); err != nil {
-					log.Error(tag, err, "unable to access TLS cert file")
+					log.Error(err, "unable to access TLS cert file")
 					return
 				}
 
 				if _, err := os.Stat(key); err != nil {
-					log.Error(tag, err, "unable to access TLS key file")
+					log.Error(err, "unable to access TLS key file")
 					return
 				}
 
@@ -185,14 +186,14 @@ var (
 					IdleTimeout:  20 * time.Second,
 				}
 
-				log.Debug(tag, "starting HTTPS listener")
-				log.Fatal(tag, svr.ListenAndServeTLS(cert, key))
+				log.Debug("starting HTTPS listener")
+				log.Fatal(svr.ListenAndServeTLS(cert, key))
 			}()
 
-			log.Debug(tag, "starting HTTP listener")
+			log.Debug("starting HTTP listener")
 
 			addr := fmt.Sprintf(":%s", context.String(StdListenPortFlag.Name))
-			log.Fatal(tag, http.ListenAndServe(addr, mux))
+			log.Fatal(http.ListenAndServe(addr, mux))
 
 			return nil
 		},

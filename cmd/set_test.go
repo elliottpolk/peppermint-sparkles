@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"fmt"
@@ -8,10 +8,10 @@ import (
 	"sync"
 	"testing"
 
-	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto/pgp"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
+	fileds "github.com/manulife-gwam/peppermint-sparkles/backend/file"
+	"github.com/manulife-gwam/peppermint-sparkles/crypto"
+	"github.com/manulife-gwam/peppermint-sparkles/crypto/pgp"
+	"github.com/manulife-gwam/peppermint-sparkles/service"
 
 	bolt "github.com/coreos/bbolt"
 	"github.com/google/uuid"

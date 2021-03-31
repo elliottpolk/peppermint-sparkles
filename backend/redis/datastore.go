@@ -5,8 +5,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"git.platform.manulife.io/go-common/log"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend"
+	"github.com/manulife-gwam/peppermint-sparkles/backend"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/go-redis/redis"
 	"github.com/pkg/errors"
@@ -32,7 +32,7 @@ func Open(opts *redis.Options) (*Datastore, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to ping redis datastore")
 	}
-	log.Debugf(tag, "client ping result %s", cr)
+	log.Debugf("client ping result %s", cr)
 
 	opts.DB = 1 //	ensure that is uses the same (default) historical DB every time
 	ds.historical = redis.NewClient(opts)
@@ -42,7 +42,7 @@ func Open(opts *redis.Options) (*Datastore, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to ping historical redis datastore")
 	}
-	log.Debugf(tag, "historical ping result %s", hr)
+	log.Debugf("historical ping result %s", hr)
 
 	return ds, nil
 }
@@ -79,7 +79,7 @@ func (ds *Datastore) Keys() []string {
 	vals, err := keys(ds.client)
 	if err != nil {
 		//	log error but still return the empty list
-		log.Error(tag, err, "unable to retrieve keys")
+		log.Error(err, "unable to retrieve keys")
 	}
 	return vals
 }
@@ -95,7 +95,7 @@ func get(key string, client *redis.Client) string {
 	res, err := client.Get(key).Result()
 	if err != nil && err != redis.Nil {
 		//	log error but still return the empty string
-		log.Error(tag, err, "unable to retrieve result for key")
+		log.Error(err, "unable to retrieve result for key")
 		return ""
 	}
 	return res
@@ -147,7 +147,7 @@ func (ds *Datastore) historicalKeys() []string {
 	vals, err := keys(ds.historical)
 	if err != nil {
 		//	log error but still return the empty list
-		log.Error(tag, err, "unable to retrieve historical keys")
+		log.Error(err, "unable to retrieve historical keys")
 	}
 	return vals
 }

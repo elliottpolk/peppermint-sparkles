@@ -1,13 +1,13 @@
-package cmd
+package main
 
 import (
 	"net"
 
-	"git.platform.manulife.io/go-common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 func init() {
-	log.InitTester()
+	log.SetLevel(log.DebugLevel)
 }
 
 func freeport() int {

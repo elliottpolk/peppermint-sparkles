@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"git.platform.manulife.io/go-common/log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/go-redis/redis"
 )
 
 func init() {
-	log.InitTester()
+	log.SetLevel(log.DebugLevel)
 }
 
 func getPort() string {

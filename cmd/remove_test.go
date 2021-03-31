@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"fmt"
@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/models"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
+	fileds "github.com/manulife-gwam/peppermint-sparkles/backend/file"
+	"github.com/manulife-gwam/peppermint-sparkles/models"
+	"github.com/manulife-gwam/peppermint-sparkles/service"
 
 	bolt "github.com/coreos/bbolt"
 	"github.com/google/uuid"

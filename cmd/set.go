@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"bufio"
@@ -8,11 +8,11 @@ import (
 	"os"
 	"os/user"
 
-	"git.platform.manulife.io/go-common/log"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto/pgp"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/models"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
+	log "github.com/sirupsen/logrus"
+	"github.com/manulife-gwam/peppermint-sparkles/crypto"
+	"github.com/manulife-gwam/peppermint-sparkles/crypto/pgp"
+	"github.com/manulife-gwam/peppermint-sparkles/models"
+	"github.com/manulife-gwam/peppermint-sparkles/service"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -115,9 +115,9 @@ var (
 
 			//	ensure to display encryption token, since it may have been generated
 			if encrypt {
-				log.Infof(tag, "token: %s", token)
+				log.Infof("token: %s", token)
 			}
-			log.Infof(tag, "secret:\n%s", s.MustString())
+			log.Infof("secret:\n%s", s.MustString())
 
 			return nil
 		},

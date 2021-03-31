@@ -22,7 +22,7 @@ all: clean unit-tests test-integration test-all build package
 .PHONY: build
 build: ; $(info $(M) building ...)                                  @ ## build the binary
 	@mkdir -p ./build/bin/
-	@GOOS=$(GOOS) go build -ldflags "-X main.version=$(VERSION)" -o ./build/bin/$(BIN)
+	@GOOS=$(GOOS) go build -ldflags "-X main.version=$(VERSION)" -o ./build/bin/$(BIN) cmd/*.go
 
 .PHONY: package
 package: ; $(info $(M) packaging ...)                               @ ## package up the binary for distribution to Artifactory or PCF
@@ -50,11 +50,11 @@ distro: ;                                          					@ ## build and package i
 
 .PHONY: install
 install: ; $(info $(M) installing locally...)                       @ ## install the binary locally
-	@GOOS=$(GOOS) go build -ldflags "-X main.version=$(VERSION)" -o $(GOPATH)/bin/$(BIN)
+	@GOOS=$(GOOS) go build -ldflags "-X main.version=$(VERSION)" -o $(GOPATH)/bin/$(BIN) cmd/*.go
 
 .PHONY: unit-tests
 unit-tests: ; $(info $(M) running unit tests ...)                   @ ## run only the unit tests
-	@go test -v -cover ./... && go test -v -cover ./...
+	@go test -v -cover ./...
 
 .PHONY: test-integration
 test-integration: ; $(info $(M) running integration tests ...)      @ ## run the integration tests which has deps on Docker

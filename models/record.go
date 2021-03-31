@@ -3,7 +3,7 @@ package models
 import (
 	"encoding/json"
 
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend"
+	"github.com/manulife-gwam/peppermint-sparkles/backend"
 
 	"github.com/pkg/errors"
 )

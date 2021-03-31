@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	fileds "git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend/file"
+	fileds "github.com/manulife-gwam/peppermint-sparkles/backend/file"
 
 	bolt "github.com/coreos/bbolt"
 	"github.com/google/uuid"

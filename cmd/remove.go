@@ -1,11 +1,11 @@
-package cmd
+package main
 
 import (
 	"fmt"
 	"net/url"
 	"os/user"
 
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
+	"github.com/manulife-gwam/peppermint-sparkles/service"
 
 	"github.com/pkg/errors"
 	"gopkg.in/urfave/cli.v2"

@@ -1,14 +1,14 @@
-package cmd
+package main
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/url"
 
-	"git.platform.manulife.io/go-common/log"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/crypto/pgp"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/models"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/service"
+	log "github.com/sirupsen/logrus"
+	"github.com/manulife-gwam/peppermint-sparkles/crypto/pgp"
+	"github.com/manulife-gwam/peppermint-sparkles/models"
+	"github.com/manulife-gwam/peppermint-sparkles/service"
 
 	"github.com/pkg/errors"
 	"gopkg.in/urfave/cli.v2"

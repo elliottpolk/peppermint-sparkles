@@ -7,13 +7,13 @@ import (
 	"regexp"
 	"time"
 
-	"git.platform.manulife.io/go-common/log"
-	"git.platform.manulife.io/go-common/respond"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/backend"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/middleware"
-	"git.platform.manulife.io/oa-montreal/peppermint-sparkles/models"
+	"github.com/manulife-gwam/peppermint-sparkles/backend"
+	"github.com/manulife-gwam/peppermint-sparkles/internal/respond"
+	"github.com/manulife-gwam/peppermint-sparkles/middleware"
+	"github.com/manulife-gwam/peppermint-sparkles/models"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 const tag string = "peppermint-sparkles.service"
@@ -44,7 +44,7 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 
 	matched, id, err := getId(r.URL.Path)
 	if err != nil {
-		log.Error(tag, err, "unable to retrieve the secret ID from the URL path")
+		log.Error(err, "unable to retrieve the secret ID from the URL path")
 		respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
 		return
 	}
@@ -76,7 +76,7 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 
 	rec, err := models.ParseRecord(raw)
 	if err != nil {
-		log.Error(tag, err, "unable to parse stored secret")
+		log.Error(err, "unable to parse stored secret")
 		respond.WithErrorMessage(w, http.StatusBadRequest, "invalid secret")
 		return
 	}
@@ -92,12 +92,12 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if rec.Status != models.ActiveStatus {
-		log.Infof(tag, "record for ID %s found, but has status %s", rec.Id, rec.Status)
+		log.Infof("record for ID %s found, but has status %s", rec.Id, rec.Status)
 		respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
 		return
 	}
 
-	log.Debugf(tag, "retrieved secret with ID %s", id)
+	log.Debugf("retrieved secret with ID %s", id)
 	respond.WithJson(w, rec.Secret)
 }
 
@@ -108,7 +108,7 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 
 	in, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Error(tag, err, "unable to read in request body")
+		log.Error(err, "unable to read in request body")
 		respond.WithErrorMessage(w, http.StatusBadRequest, "unable to read in request")
 		return
 	}
@@ -123,7 +123,7 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 	//	in the expected secret format
 	s, err := models.ParseSecret(string(in))
 	if err != nil {
-		log.Error(tag, err, "unable to unmarshal request to secret")
+		log.Error(err, "unable to unmarshal request to secret")
 		respond.WithErrorMessage(w, http.StatusBadRequest, "unable to convert request to valid secret")
 		return
 	}
@@ -159,12 +159,12 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := rec.Write(ds); err != nil {
-		log.Error(tag, err, "unable to write record to storage")
+		log.Error(err, "unable to write record to storage")
 		respond.WithErrorMessage(w, http.StatusInternalServerError, "unable to write secret record to storage")
 		return
 	}
 
-	log.Debugf(tag, "created new record with ID %s for user %s", s.Id, usr)
+	log.Debugf("created new record with ID %s for user %s", s.Id, usr)
 	respond.WithJsonCreated(w, s)
 }
 
@@ -173,7 +173,7 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 
 	matched, id, err := getId(r.URL.Path)
 	if err != nil {
-		log.Error(tag, err, "unable to retrieve the secret ID from the URL path")
+		log.Error(err, "unable to retrieve the secret ID from the URL path")
 		respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
 		return
 	}
@@ -193,7 +193,7 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 
 	rec, err := models.ParseRecord(raw)
 	if err != nil {
-		log.Error(tag, err, "unable to parse stored secret")
+		log.Error(err, "unable to parse stored secret")
 		respond.WithErrorMessage(w, http.StatusBadRequest, "invalid secret")
 		return
 	}
@@ -217,20 +217,20 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if rec.Status != models.ActiveStatus {
-		log.Infof(tag, "record for ID %s found, but has status %s", rec.Id, rec.Status)
+		log.Infof("record for ID %s found, but has status %s", rec.Id, rec.Status)
 		respond.WithErrorMessage(w, http.StatusNotFound, "file not found")
 		return
 	}
 
 	histo := models.Historical{Record: rec}
 	if err := histo.Write(ds, models.DeleteAction, usr, time.Now().UnixNano()); err != nil {
-		log.Error(tag, err, "unable to write record to history")
+		log.Error(err, "unable to write record to history")
 		respond.WithError(w, http.StatusInternalServerError, err, "unable to delete secret")
 		return
 	}
 
 	if err := rec.Rm(ds); err != nil {
-		log.Error(tag, err, "unable to remove record from datastore")
+		log.Error(err, "unable to remove record from datastore")
 		respond.WithError(w, http.StatusInternalServerError, err, "unable to delete secrete")
 		return
 	}
